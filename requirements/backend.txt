@@ -1,0 +1,11 @@
+# FastAPI backend image (lightweight: no ML libraries, talks to the model server over REST).
+fastapi==0.115.4
+uvicorn[standard]==0.32.0
+pydantic==2.9.2
+httpx==0.27.2
+prometheus-client==0.21.0
+numpy==1.26.4
+pandas==2.2.3
+cryptography==43.0.3
+PyYAML==6.0.2
+mlflow-skinny==2.17.2

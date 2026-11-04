@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "complaint-router"
+version = "1.0.0"
+description = "Financial complaint routing with an AIOps lifecycle (Ray, DVC, MLflow, FastAPI, Prometheus)."
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+markers = [
+    "e2e: end-to-end tests that need the docker compose stack running",
+]
+addopts = "-m 'not e2e'"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+src = ["src", "backend", "services"]
+
+[tool.ruff.lint]
+# pycodestyle, pyflakes, isort, naming, bugbear, pyupgrade, simplify
+select = ["E", "F", "W", "I", "N", "B", "UP", "SIM"]
+# B008: FastAPI's Depends() defaults. N803/N806/N815: scikit-learn conventions (X, C).
+ignore = ["B008", "N803", "N806", "N815"]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/build_grafana_dashboard.py" = ["E501"]  # PromQL expressions read best unbroken
+
+[tool.ruff.lint.isort]
+known-first-party = ["complaint_router", "app"]

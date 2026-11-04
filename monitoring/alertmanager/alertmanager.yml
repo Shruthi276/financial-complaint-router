@@ -1,0 +1,19 @@
+# Alerts labelled action=retrain go to the retrainer webhook; everything else
+# is visible in the Alertmanager UI (no external receivers: cloud not allowed).
+route:
+  receiver: default
+  group_by: [alertname]
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 1h
+  routes:
+    - matchers: ['action="retrain"']
+      receiver: retrainer
+      repeat_interval: 30m
+
+receivers:
+  - name: default
+  - name: retrainer
+    webhook_configs:
+      - url: http://retrainer:8001/webhook/alertmanager
+        send_resolved: false

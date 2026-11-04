@@ -1,0 +1,66 @@
+# ---------------------------------------------------------------------------
+# Single source of truth for every tunable value in the ML pipeline.
+# DVC tracks this file: changing a value here invalidates exactly the stages
+# that depend on it (see `params:` blocks in dvc.yaml).
+# ---------------------------------------------------------------------------
+
+ingest:
+  # "hf_mirror": download parquet shards of the CFPB complaint database
+  #              (with narratives) from the public HuggingFace mirror.
+  # "sample":    use the small sample committed to the repo (offline / CI).
+  # "local":     use parquet/csv file(s) you already have at `local_path`.
+  source: hf_mirror
+  hf_base_url: https://huggingface.co/datasets/davidheineman/consumer-finance-complaints-large/resolve/main/data
+  hf_shard_template: train-{shard:05d}-of-00011.parquet
+  shards: [10]                 # one shard ~ 114 MB, ~650k rows, ~165k with narratives
+  local_path: data/external/complaints.parquet
+  sample_path: data/sample/sample_complaints.csv
+  download_cache: .cache/downloads   # outside DVC outs so re-runs do not re-download
+  timeout_seconds: 600
+
+preprocess:
+  engine: ray                  # ray | pandas (pandas = fallback for tiny machines)
+  num_cpus: 2                  # Ray workers; keep <= VM vCPUs
+  batch_size: 4096
+  min_chars: 50                # drop narratives shorter than this after cleaning
+  max_chars: 6000              # truncate very long narratives
+
+validate:
+  min_rows: 1000
+  max_null_fraction: 0.0
+  min_classes: 5
+  min_rows_per_class: 100
+
+split:
+  seed: 42
+  max_per_class: 6000          # class-balanced cap keeps training fast on a laptop VM
+  test_size: 0.15
+  val_size: 0.15
+
+train:
+  model_type: logreg           # logreg | sgd | cnb
+  max_features: 50000
+  ngram_max: 2
+  min_df: 3
+  C: 4.0                       # logreg inverse regularisation
+  alpha: 0.0001                # sgd regularisation / cnb smoothing
+  max_iter: 1000
+  priority_C: 2.0
+  priority_target_recall: 0.70 # threshold tuned on validation to hit this recall
+  similar_index_size: 15000    # past complaints kept for "similar complaints"
+  seed: 42
+
+evaluate:
+  low_confidence_threshold: 0.50
+
+register:
+  model_name: complaint-router
+  # Acceptance gate: a candidate is only promoted to @champion if it clears
+  # these absolute bars AND is not worse than the current champion.
+  min_macro_f1: 0.70
+  min_priority_recall: 0.65
+  max_priority_flag_rate: 0.35 # an "urgent" flag on most complaints would be useless
+  max_regression: 0.005
+
+mlflow:
+  experiment_name: financial-complaint-router

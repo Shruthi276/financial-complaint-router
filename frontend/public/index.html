@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Complaint Router</title>
+  <meta name="description" content="Route financial customer complaints to the right team, flag urgent cases and find similar past complaints.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230f766e'/><path d='M8 11h16M8 16h10M8 21h13' stroke='white' stroke-width='3' stroke-linecap='round'/></svg>">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="config.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"></span>
+      <div>
+        <div class="brand-name">Complaint Router</div>
+        <div class="brand-sub">Financial customer-care triage</div>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Main sections">
+      <button class="tab active" role="tab" data-view="route" aria-selected="true">Route a complaint</button>
+      <button class="tab" role="tab" data-view="pipeline" aria-selected="false">Pipeline console</button>
+      <button class="tab" role="tab" data-view="monitoring" aria-selected="false">Monitoring</button>
+      <button class="tab" role="tab" data-view="help" aria-selected="false">Help</button>
+    </nav>
+    <div class="status" id="status" title="System status">
+      <span class="dot" id="status-dot"></span><span id="status-text">Connecting…</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- ============================================================ ROUTE -->
+    <section class="view active" id="view-route" aria-label="Route a complaint">
+      <div class="grid-2">
+        <div class="card input-card">
+          <h1>Paste a customer complaint</h1>
+          <p class="muted">The system reads the complaint, sends it to the right team, checks whether it is urgent and shows similar past cases.</p>
+          <label for="complaint" class="sr-only">Complaint text</label>
+          <textarea id="complaint" rows="11" maxlength="10000"
+            placeholder="Example: Someone opened a credit card in my name and the bank keeps charging me for purchases I never made…"></textarea>
+          <div class="input-meta">
+            <span id="char-count" class="muted">0 / 10,000 characters</span>
+            <span id="input-hint" class="hint"></span>
+          </div>
+          <div class="actions">
+            <button id="btn-route" class="btn primary" disabled>Route complaint</button>
+            <button id="btn-clear" class="btn ghost">Clear</button>
+          </div>
+          <div class="examples">
+            <div class="examples-title">Or try an example:</div>
+            <div id="example-chips" class="chips"></div>
+          </div>
+        </div>
+
+        <div id="result" class="result" aria-live="polite">
+          <div class="card empty-state" id="empty-state">
+            <div class="empty-icon" aria-hidden="true">⇢</div>
+            <h2>Your routing decision appears here</h2>
+            <p class="muted">You will see the team, how confident the system is, whether the case is urgent, and why.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= PIPELINE -->
+    <section class="view" id="view-pipeline" aria-label="Pipeline console">
+      <div class="section-head">
+        <div>
+          <h1>ML pipeline console</h1>
+          <p class="muted">The DVC pipeline that ingests data with Ray, validates it, trains, evaluates and registers models. It re-runs automatically when drift is detected.</p>
+        </div>
+        <div class="actions">
+          <button class="btn ghost" id="btn-refresh-pipeline">Refresh</button>
+          <button class="btn primary" id="btn-retrain">Retrain now…</button>
+        </div>
+      </div>
+
+      <div class="kpis" id="pipeline-kpis"></div>
+
+      <div class="card">
+        <h2>Pipeline graph <span class="muted small">(click a stage for details)</span></h2>
+        <div id="dag" class="dag"></div>
+        <div id="stage-detail" class="stage-detail muted">Select a stage to see its command, inputs, outputs and latest run.</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h2>Model registry</h2>
+          <div class="table-wrap"><table id="tbl-versions"><thead><tr><th>Version</th><th>Aliases</th><th>Test macro-F1</th><th>Gate</th><th>Created</th></tr></thead><tbody></tbody></table></div>
+        </div>
+        <div class="card">
+          <h2>Retraining runs</h2>
+          <div id="retrain-status" class="muted small"></div>
+          <div class="table-wrap"><table id="tbl-retrain"><thead><tr><th>Started</th><th>Trigger</th><th>Status</th><th>Duration</th><th>Promoted</th></tr></thead><tbody></tbody></table></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Stage runs <span class="muted small">(successes, failures, throughput)</span></h2>
+        <div class="filters">
+          <label>Status
+            <select id="run-filter"><option value="">All</option><option value="success">Success</option><option value="failed">Failed</option></select>
+          </label>
+        </div>
+        <div class="table-wrap"><table id="tbl-runs"><thead><tr><th>Finished</th><th>Stage</th><th>Status</th><th>Duration</th><th>Rows in → out</th><th>Rows/s</th><th>Commit</th><th>Error</th></tr></thead><tbody></tbody></table></div>
+      </div>
+
+      <div class="card">
+        <h2>Experiment runs (MLflow)</h2>
+        <div class="table-wrap"><table id="tbl-experiments"><thead><tr><th>Started</th><th>Run</th><th>Model</th><th>Val macro-F1</th><th>Test macro-F1</th><th>Trigger</th><th>Commit</th></tr></thead><tbody></tbody></table></div>
+      </div>
+
+      <div class="card">
+        <h2>Tool consoles</h2>
+        <div class="links" id="tool-links"></div>
+      </div>
+    </section>
+
+    <!-- ======================================================= MONITORING -->
+    <section class="view" id="view-monitoring" aria-label="Monitoring">
+      <div class="section-head">
+        <div>
+          <h1>Live monitoring</h1>
+          <p class="muted">Prometheus metrics shown in Grafana (refreshes every 10 seconds).</p>
+        </div>
+        <a class="btn ghost" id="grafana-open" target="_blank" rel="noopener">Open in Grafana ↗</a>
+      </div>
+      <div class="kpis" id="drift-kpis"></div>
+      <div class="card iframe-card">
+        <iframe id="grafana-frame" title="Grafana dashboard" loading="lazy"></iframe>
+      </div>
+    </section>
+
+    <!-- ============================================================= HELP -->
+    <section class="view" id="view-help" aria-label="Help">
+      <div class="card prose">
+        <h1>How to use the Complaint Router</h1>
+        <ol class="steps">
+          <li><strong>Paste the complaint.</strong> Copy the customer's message into the big box on the <em>Route a complaint</em> tab. It must be at least 20 characters. Or click one of the examples.</li>
+          <li><strong>Click “Route complaint”.</strong> After about a second you will see the result.</li>
+          <li><strong>Read the result:</strong>
+            <ul>
+              <li><strong>Team</strong>: where the complaint should be sent.</li>
+              <li><strong>Confidence</strong>: how sure the system is. <span class="pill warn">Needs review</span> means below 50%. Please check it yourself.</li>
+              <li><strong>Priority</strong>: <span class="pill high">URGENT</span> complaints (fraud, foreclosure, threats, inability to pay…) should be handled first.</li>
+              <li><strong>Why</strong>: the words that most influenced the decision.</li>
+              <li><strong>Similar past complaints</strong>: earlier cases like this one and how the company responded.</li>
+            </ul>
+          </li>
+          <li><strong>Tell us if it was right.</strong> Click <em>Correct</em>, or choose the right team and click <em>Send correction</em>. Corrections are stored encrypted and used to retrain the model.</li>
+        </ol>
+        <h2>Troubleshooting</h2>
+        <table>
+          <tr><th>You see</th><th>What to do</th></tr>
+          <tr><td>Red dot “Model offline”</td><td>The model is starting or has not been trained yet. Wait a minute. An administrator can run <code>make train</code>.</td></tr>
+          <tr><td>“Please write a bit more”</td><td>The text is too short to judge. Add more detail about the problem.</td></tr>
+          <tr><td>“Needs review” badge</td><td>The system is unsure. Read the complaint and pick the team yourself, then send the correction.</td></tr>
+        </table>
+        <h2>For administrators</h2>
+        <p>The <em>Pipeline console</em> shows each pipeline stage, its runs and failures, and the model versions. <em>Retrain now</em> needs the admin token from the <code>.env</code> file. The <em>Monitoring</em> tab shows latency, prediction mix and data drift. When drift lasts more than a minute, retraining starts automatically.</p>
+        <p>The full manual is in <code>docs/user_manual.md</code>.</p>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <dialog id="retrain-dialog">
+    <form method="dialog" id="retrain-form">
+      <h2>Start retraining</h2>
+      <p class="muted">This re-runs the full pipeline (it takes a few minutes). The new model only goes live if it is at least as good as the current one.</p>
+      <label>Admin token <input type="password" id="admin-token" required autocomplete="off"></label>
+      <label>Reason <input type="text" id="retrain-reason" maxlength="200" value="manual retrain from pipeline console"></label>
+      <div class="actions">
+        <button value="cancel" class="btn ghost" formnovalidate>Cancel</button>
+        <button value="ok" class="btn primary" id="retrain-confirm">Start</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

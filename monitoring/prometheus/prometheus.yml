@@ -1,0 +1,32 @@
+# Prometheus: scrapes every component of the stack every 10s.
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+rule_files:
+  - /etc/prometheus/alert_rules.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  - job_name: backend            # API, predictions, drift, pipeline stage metrics
+    static_configs: [{ targets: ["backend:8000"] }]
+  - job_name: model-server       # supervisor of mlflow models serve
+    static_configs: [{ targets: ["model-server:9101"] }]
+  - job_name: mlflow             # tracking server (prometheus_flask_exporter)
+    static_configs: [{ targets: ["mlflow:5000"] }]
+  - job_name: retrainer          # automated retraining loop
+    static_configs: [{ targets: ["retrainer:8001"] }]
+  - job_name: frontend           # nginx via nginx-prometheus-exporter
+    static_configs: [{ targets: ["nginx-exporter:9113"] }]
+  - job_name: node               # VM CPU / memory / disk
+    static_configs: [{ targets: ["node-exporter:9100"] }]
+  - job_name: alertmanager
+    static_configs: [{ targets: ["alertmanager:9093"] }]
+  - job_name: grafana
+    static_configs: [{ targets: ["grafana:3000"] }]
+  - job_name: prometheus
+    static_configs: [{ targets: ["localhost:9090"] }]

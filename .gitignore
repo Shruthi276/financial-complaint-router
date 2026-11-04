@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+*.egg-info/
+
+# Secrets
+.env
+
+# Data & models are versioned by DVC: `dvc repro` writes precise .gitignore
+# entries next to each output (data/raw/.gitignore, models/.gitignore, ...).
+/data/external/
+.cache/
+
+# Encrypted agent feedback is personal data: never committed
+/data/feedback/*
+!/data/feedback/.gitkeep
+
+# Runtime logs (pipeline console reads these)
+/logs/
+/reports/pipeline_runs.jsonl
+/reports/retrain_history.jsonl
+/reports/tests/
+/reports/ci/
+
+# Local MLflow file store (the docker stack uses the mlflow volume)
+mlruns/

@@ -1,0 +1,61 @@
+groups:
+  - name: complaint-router-model
+    rules:
+      # The only alert wired to an ACTION: Alertmanager routes action=retrain to
+      # the retrainer webhook, which runs the DVC pipeline (with cool-down).
+      - alert: DataDriftDetected
+        expr: max(complaint_router_drift_detected) == 1
+        for: 1m
+        labels: { severity: warning, action: retrain }
+        annotations:
+          summary: "Input data drift detected on the live complaint stream"
+          description: "Drift score {{ $value }}. Category PSI, length PSI or OOV rate crossed its threshold."
+
+      - alert: ModelServerDown
+        expr: complaint_router_model_server_up == 0 or up{job="model-server"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "Model server is not answering"
+
+      - alert: HighInferenceLatency
+        expr: histogram_quantile(0.95, sum(rate(complaint_router_http_request_duration_seconds_bucket{endpoint="/api/v1/predict"}[5m])) by (le)) > 1
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "p95 prediction latency above 1s"
+
+      - alert: HighErrorRate
+        expr: sum(rate(complaint_router_http_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(complaint_router_http_requests_total[5m])), 0.001) > 0.05
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "More than 5% of API requests fail"
+
+      - alert: LowConfidenceSpike
+        expr: sum(rate(complaint_router_low_confidence_predictions_total[10m])) / clamp_min(sum(rate(complaint_router_predictions_total[10m])), 0.001) > 0.5
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Over half of recent predictions are low-confidence"
+
+      - alert: RetrainingFailed
+        expr: increase(retrainer_runs_total{status="failed"}[30m]) > 0
+        labels: { severity: critical }
+        annotations:
+          summary: "An automated retraining run failed - check the pipeline console"
+
+  - name: complaint-router-infra
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.job }} is down"
+      - alert: HostMemoryHigh
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 0.9
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "VM memory usage above 90%"

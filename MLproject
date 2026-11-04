@@ -1,0 +1,29 @@
+# MLflow Project: lets anyone reproduce the pipeline in an identical
+# environment with `mlflow run . -e <entry point> --env-manager local`
+# (inside the ML docker image) or `--env-manager virtualenv` (on a fresh host).
+name: financial-complaint-router
+
+python_env: python_env.yaml
+
+entry_points:
+  main:
+    # Full pipeline through DVC (only changed stages are re-run).
+    command: "dvc repro"
+
+  ingest:
+    command: "python -m complaint_router.pipeline.ingest"
+
+  preprocess:
+    command: "python -m complaint_router.pipeline.preprocess"
+
+  train:
+    parameters:
+      model_type: {type: string, default: logreg}
+      C: {type: float, default: 4.0}
+      max_features: {type: float, default: 50000}
+    # `dvc exp run -S` overrides params.yaml for this run only and records the
+    # experiment in DVC; the MLflow run is logged by the train stage itself.
+    command: "dvc exp run -S train.model_type={model_type} -S train.C={C} -S train.max_features={max_features}"
+
+  evaluate:
+    command: "python -m complaint_router.pipeline.evaluate"

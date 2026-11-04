@@ -1,0 +1,138 @@
+# DVC pipeline = the project's CI/CT DAG.  Visualise with:  dvc dag
+#
+#   ci_tests ------------------------------------+
+#   ingest -> preprocess -> validate -> split -> train -> evaluate -> register
+#
+# `dvc repro` re-runs only the stages whose code, data or params changed.
+# Every stage appends its outcome to reports/pipeline_runs.jsonl (console UI).
+vars:
+  - PY: python -m complaint_router.pipeline
+
+stages:
+  ci_tests:
+    desc: Unit tests must pass before any model is (re)built.
+    cmd: python -m pytest tests/unit -q --junitxml=reports/ci/unit_tests.xml
+    deps:
+      - src/complaint_router
+      - tests/unit
+    outs:
+      - reports/ci/unit_tests.xml:
+          cache: false
+
+  ingest:
+    desc: Download / collect raw CFPB complaints with narratives.
+    cmd: ${PY}.ingest
+    deps:
+      - src/complaint_router/pipeline/ingest.py
+    params:
+      - ingest
+    outs:
+      - data/raw/complaints.parquet
+    metrics:
+      - reports/ingest.json:
+          cache: false
+
+  preprocess:
+    desc: Ray Data distributed cleaning, PII masking, label mapping, dedupe.
+    cmd: ${PY}.preprocess
+    deps:
+      - data/raw/complaints.parquet
+      - data/feedback
+      - src/complaint_router/pipeline/preprocess.py
+      - src/complaint_router/text_cleaning.py
+      - src/complaint_router/categories.py
+      - src/complaint_router/feedback.py
+    params:
+      - preprocess
+    outs:
+      - data/processed/complaints_clean.parquet
+    metrics:
+      - reports/preprocess.json:
+          cache: false
+
+  validate:
+    desc: Data-quality gate (schema, nulls, label domain, volume).
+    cmd: ${PY}.validate
+    deps:
+      - data/processed/complaints_clean.parquet
+      - src/complaint_router/pipeline/validate.py
+    params:
+      - validate
+    metrics:
+      - reports/data_validation.json:
+          cache: false
+
+  split:
+    desc: Class-balanced sampling + stratified train/val/test split.
+    cmd: ${PY}.split
+    deps:
+      - data/processed/complaints_clean.parquet
+      - reports/data_validation.json
+      - src/complaint_router/pipeline/split.py
+    params:
+      - split
+      - validate.min_rows_per_class
+    outs:
+      - data/splits
+    metrics:
+      - reports/split.json:
+          cache: false
+
+  train:
+    desc: Fit TF-IDF + linear router + priority model; log run to MLflow.
+    cmd: ${PY}.train
+    deps:
+      - data/splits
+      - reports/ci/unit_tests.xml
+      - src/complaint_router/model
+      - src/complaint_router/pipeline/train.py
+    params:
+      - train
+      - evaluate
+      - mlflow
+    outs:
+      - models/router.joblib
+    metrics:
+      - reports/train_run.json:
+          cache: false
+
+  evaluate:
+    desc: Test metrics, confusion matrix, drift reference statistics.
+    cmd: ${PY}.evaluate
+    deps:
+      - models/router.joblib
+      - data/splits/test.parquet
+      - reports/train_run.json
+      - src/complaint_router/pipeline/evaluate.py
+      - src/complaint_router/monitoring/drift.py
+    params:
+      - evaluate
+    metrics:
+      - reports/metrics.json:
+          cache: false
+    outs:
+      - reports/reference_stats.json:
+          cache: false
+      - reports/per_class_metrics.json:
+          cache: false
+      - reports/confusion_matrix.png:
+          cache: false
+    plots:
+      - reports/confusion_matrix.csv:
+          cache: false
+          template: confusion
+          x: predicted
+          y: actual
+
+  register:
+    desc: Register in MLflow Model Registry; promote to @champion if it passes the gate.
+    cmd: ${PY}.register
+    deps:
+      - reports/metrics.json
+      - reports/train_run.json
+      - src/complaint_router/pipeline/register.py
+    params:
+      - register
+    outs:
+      - reports/registration.json:
+          cache: false

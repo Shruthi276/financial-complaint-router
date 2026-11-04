@@ -1,0 +1,146 @@
+# Financial Complaint Router - full stack.
+#   make up      -> build + start everything
+#   make train   -> run the DVC pipeline inside the retrainer container
+# Ports (host): 8080 web UI | 8000 API | 5000 MLflow | 5001 model server
+#               3000 Grafana | 9090 Prometheus | 9093 Alertmanager | 8001 retrainer
+name: complaint-router
+
+x-ml-build: &ml-build
+  context: .
+  dockerfile: docker/ml.Dockerfile
+
+x-restart: &restart
+  restart: unless-stopped
+
+services:
+  mlflow:
+    <<: *restart
+    build: { <<: *ml-build, target: mlflow }
+    image: complaint-router/mlflow:1.0
+    ports: ["5000:5000"]
+    volumes: [mlflow-data:/mlflow]
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:5000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  model-server:
+    <<: *restart
+    build: { <<: *ml-build, target: model-server }
+    image: complaint-router/model-server:1.0
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MODEL_NAME: complaint-router
+      SERVE_WORKERS: "2"
+    ports: ["5001:5001"]
+    depends_on:
+      mlflow: { condition: service_healthy }
+
+  backend:
+    <<: *restart
+    build: { context: ., dockerfile: backend/Dockerfile }
+    image: complaint-router/backend:1.0
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    environment:
+      MODEL_SERVER_URL: http://model-server:5001
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      RETRAINER_URL: http://retrainer:8001
+      WORKSPACE_DIR: /workspace
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?run "make env" first}
+      FEEDBACK_ENCRYPTION_KEY: ${FEEDBACK_ENCRYPTION_KEY:?run "make env" first}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      DRIFT_WINDOW: ${DRIFT_WINDOW:-200}
+      DRIFT_MIN_SAMPLES: ${DRIFT_MIN_SAMPLES:-50}
+    volumes:
+      - ./reports:/workspace/reports:ro
+      - ./dvc.yaml:/workspace/dvc.yaml:ro
+      - ./data/feedback:/workspace/data/feedback
+    ports: ["8000:8000"]
+    depends_on: [mlflow, model-server]
+
+  frontend:
+    <<: *restart
+    build: { context: ./frontend }
+    image: complaint-router/frontend:1.0
+    environment:
+      # Empty = "same host as the page, port 8000". Set to e.g. http://192.168.56.10:8000 if needed.
+      API_BASE_URL: ${API_BASE_URL:-}
+      GRAFANA_URL: ${GRAFANA_URL:-}
+      MLFLOW_URL: ${MLFLOW_URL:-}
+      PROMETHEUS_URL: ${PROMETHEUS_URL:-}
+      ALERTMANAGER_URL: ${ALERTMANAGER_URL:-}
+    ports: ["8080:8080"]
+    depends_on: [backend]
+
+  retrainer:
+    <<: *restart
+    build: { <<: *ml-build, target: retrainer }
+    image: complaint-router/retrainer:1.0
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    shm_size: 2gb                       # Ray object store lives in /dev/shm
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?run "make env" first}
+      FEEDBACK_ENCRYPTION_KEY: ${FEEDBACK_ENCRYPTION_KEY:?run "make env" first}
+      RETRAIN_COOLDOWN_SECONDS: ${RETRAIN_COOLDOWN_SECONDS:-1800}
+      RAY_OBJECT_STORE_BYTES: "536870912"
+    volumes:
+      - ./:/workspace                   # the git/DVC repository itself
+    ports: ["8001:8001"]
+    depends_on:
+      mlflow: { condition: service_healthy }
+
+  prometheus:
+    <<: *restart
+    image: prom/prometheus:v2.55.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    ports: ["9090:9090"]
+
+  alertmanager:
+    <<: *restart
+    image: prom/alertmanager:v0.27.0
+    command: [--config.file=/etc/alertmanager/alertmanager.yml]
+    volumes: [./monitoring/alertmanager:/etc/alertmanager:ro]
+    ports: ["9093:9093"]
+
+  grafana:
+    <<: *restart
+    image: grafana/grafana:11.3.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"          # read-only viewers (embedded in the UI)
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/complaint_router.json
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports: ["3000:3000"]
+    depends_on: [prometheus]
+
+  node-exporter:
+    <<: *restart
+    image: prom/node-exporter:v1.8.2
+    command: [--path.rootfs=/host]
+    pid: host
+    volumes: ["/:/host:ro,rslave"]
+
+  nginx-exporter:
+    <<: *restart
+    image: nginx/nginx-prometheus-exporter:1.3.0
+    command: [--nginx.scrape-uri=http://frontend:8080/nginx_status]
+    depends_on: [frontend]
+
+volumes:
+  mlflow-data:
+  prometheus-data:
+  grafana-data:

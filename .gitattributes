@@ -1,0 +1,9 @@
+# Normalise line endings: the project is edited on Windows and run on Ubuntu.
+* text=auto eol=lf
+*.sh text eol=lf
+*.png binary
+*.joblib binary
+
+# Git LFS: binary / sizeable artefacts committed directly to git
+data/sample/*.csv filter=lfs diff=lfs merge=lfs -text
+docs/images/*.png filter=lfs diff=lfs merge=lfs -text
