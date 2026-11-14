@@ -28,3 +28,6 @@ __pycache__/
 
 # Local MLflow file store (the docker stack uses the mlflow volume)
 mlruns/
+
+# Course documents (not part of the project)
+/AI Application*.pdf
