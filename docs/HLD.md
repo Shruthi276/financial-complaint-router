@@ -16,6 +16,31 @@ Banks receive large volumes of free-text complaints that are triaged by hand: sl
 | Single-request latency (model) | < 1 s p95 | **~80-110 ms** |
 | Preprocessing throughput (Ray, 2 CPUs) | - | **~10,000 rows/s** (650k rows in 64 s) |
 
+### High-level diagram
+
+The system has three parts: **online** routing of one complaint, **offline** building of a model, and a **monitoring loop** that connects them.
+
+```mermaid
+flowchart TB
+  subgraph Online["1. Online - routing a complaint"]
+    U["Agent pastes a complaint"] --> UI["Web UI"]
+    UI -->|REST| API["FastAPI backend"]
+    API -->|REST| M["Model server<br/>serves the @champion model"]
+  end
+  subgraph Offline["2. Offline - building a model (DVC pipeline)"]
+    D[("CFPB complaints")] --> P["ingest, preprocess (Ray),<br/>validate, split"]
+    P --> T["train + evaluate"]
+    T --> R["register<br/>quality gate"]
+  end
+  subgraph Loop["3. Monitoring loop"]
+    PR["Prometheus + Grafana"] -->|"drift alert"| RT["Retrainer"]
+  end
+  T -->|"params, metrics, model"| ML[("MLflow")]
+  R -->|"new @champion"| M
+  API -->|"metrics"| PR
+  RT -->|"dvc repro"| P
+```
+
 ## 2. Data
 
 * **Source:** CFPB Consumer Complaint Database (public, US). In 2025 the live CFPB export stopped publishing the narrative text, so the pipeline reads the Apache-2.0 parquet mirror on HuggingFace (`davidheineman/consumer-finance-complaints-large`, 7M rows up to Nov 2024). The `ingest.source` parameter also accepts a local file or the bundled sample.

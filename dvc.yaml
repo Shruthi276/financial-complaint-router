@@ -11,7 +11,7 @@ vars:
 stages:
   ci_tests:
     desc: Unit tests must pass before any model is (re)built.
-    cmd: python -m pytest tests/unit -q --junitxml=reports/ci/unit_tests.xml
+    cmd: ${PY}.ci_tests
     deps:
       - src/complaint_router
       - tests/unit

@@ -17,9 +17,9 @@ entry_points:
 
   train:
     parameters:
-      model_type: {type: string, default: logreg}
+      model_type: {type: string, default: sgd}
       C: {type: float, default: 4.0}
-      max_features: {type: float, default: 50000}
+      max_features: {type: string, default: "50000"}
     # Runs one DVC experiment with the given params.
     command: "dvc exp run -S train.model_type={model_type} -S train.C={C} -S train.max_features={max_features}"
 

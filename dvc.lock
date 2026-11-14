@@ -1,13 +1,13 @@
 schema: '2.0'
 stages:
   ci_tests:
-    cmd: python -m pytest tests/unit -q --junitxml=reports/ci/unit_tests.xml
+    cmd: python -m complaint_router.pipeline.ci_tests
     deps:
     - path: src/complaint_router
       hash: md5
-      md5: 65e3e9c8b8e538b301d1ca4be4667e7b.dir
-      size: 75115
-      nfiles: 21
+      md5: efdd799ec82813d5285c1f610d80a6a0.dir
+      size: 70568
+      nfiles: 22
     - path: tests/unit
       hash: md5
       md5: 391a804113d819e33f648bcf3e325f97.dir
@@ -16,8 +16,8 @@ stages:
     outs:
     - path: reports/ci/unit_tests.xml
       hash: md5
-      md5: 1c443dab407becd556a31dce1e0839a1
-      size: 4779
+      md5: 65471fd563fc6a168fc86c907353f56c
+      size: 4792
   ingest:
     cmd: python -m complaint_router.pipeline.ingest
     deps:
