@@ -1,16 +1,13 @@
-# Financial Complaint Router - one-word commands for every lifecycle step.
-# Run `make help` to list them. Designed for Ubuntu (bash, docker compose v2).
+# Financial Complaint Router - run `make help` to see all commands.
 SHELL := /bin/bash
 COMPOSE := docker compose
-# `dvc exp run` commits experiment refs, so the container needs the host's git identity.
+# dvc exp run needs a git name/email inside the container.
 GIT_ID := -e GIT_AUTHOR_NAME="$(shell git config user.name)" -e GIT_AUTHOR_EMAIL="$(shell git config user.email)" \
           -e GIT_COMMITTER_NAME="$(shell git config user.name)" -e GIT_COMMITTER_EMAIL="$(shell git config user.email)"
 RUN_ML := $(COMPOSE) run --rm --no-deps -e MLFLOW_TRACKING_URI=http://mlflow:5000 $(GIT_ID) retrainer
 VENV := .venv
 PY := $(VENV)/bin/python
-# The pinned stack (numpy 1.26, Ray 2.38, MLflow 2.17) supports Python 3.10-3.12,
-# so the venv uses a uv-managed Python 3.11 (same as the Docker images) instead of
-# the system python3, which is 3.14 on recent Ubuntu releases.
+# Python 3.11 (same as the Docker images); the system Python is too new for Ray 2.38.
 PYTHON_VERSION := 3.11
 UV := $(shell command -v uv 2>/dev/null || echo $(HOME)/.local/bin/uv)
 

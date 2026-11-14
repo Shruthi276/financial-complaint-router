@@ -1,12 +1,10 @@
-"""Data-drift statistics shared by the training pipeline and the backend.
+"""Data drift checks.
 
-The pipeline computes *reference* statistics on held-out data; the backend
-computes the same statistics on a rolling window of live requests and compares
-them. Three complementary signals are used:
-
-* PSI of the predicted-category distribution (concept / population shift)
-* PSI of the text-length distribution (input shape shift)
-* Increase in the out-of-vocabulary token rate (new language the model never saw)
+Training saves reference statistics; the backend computes the same statistics
+on recent requests and compares them using:
+- PSI of the predicted category mix
+- PSI of the text length
+- increase in out-of-vocabulary words
 """
 
 from __future__ import annotations
@@ -37,10 +35,7 @@ def distribution(labels: Sequence[str], classes: Sequence[str]) -> list[float]:
 
 
 def psi(expected: Sequence[float], actual: Sequence[float]) -> float:
-    """Population Stability Index between two discrete distributions.
-
-    Rule of thumb: < 0.1 stable, 0.1-0.25 moderate shift, > 0.25 significant shift.
-    """
+    """Population Stability Index (< 0.1 stable, > 0.25 big shift)."""
     e = np.clip(np.asarray(expected, dtype=float), _EPS, None)
     a = np.clip(np.asarray(actual, dtype=float), _EPS, None)
     e, a = e / e.sum(), a / a.sum()
@@ -56,8 +51,7 @@ def drift_report(reference: dict, live_categories: Sequence[str], live_lengths: 
     length_psi = psi(reference["length_histogram"], histogram(live_lengths))
     live_oov_mean = float(np.mean(live_oov)) if len(live_oov) else 0.0
     oov_increase = max(0.0, live_oov_mean - float(reference["oov_rate_mean"]))
-    # Composite score in [0, 1]: each signal is scaled by its own threshold, so
-    # 0.5 means "the worst signal sits exactly at its threshold"; capped at 1.
+    # 0..1 score for the dashboard: 0.5 means the worst signal is at its threshold.
     score = min(1.0, max(category_psi / psi_threshold, length_psi / psi_threshold,
                          oov_increase / oov_increase_threshold) / 2)
     return {

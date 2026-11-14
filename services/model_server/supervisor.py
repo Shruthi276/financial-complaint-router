@@ -1,13 +1,7 @@
-"""Model-server supervisor: keeps ``mlflow models serve`` on the current @champion.
+"""Keeps `mlflow models serve` running the current @champion model.
 
-Loop:
-  1. resolve the registry alias ``@champion`` -> version N
-  2. if N changed (new promotion or rollback) or the server died: (re)start
-     ``mlflow models serve -m models:/<name>/<N>``
-  3. expose its own Prometheus metrics on :9101
-
-This gives zero-touch continuous deployment: the DVC ``register`` stage only
-moves an alias; the supervisor deploys it. Rolling back = moving the alias back.
+Every few seconds it checks which version is @champion. If it changed (new
+model or rollback) or the server died, it restarts the server on that version.
 """
 
 from __future__ import annotations

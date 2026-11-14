@@ -1,9 +1,5 @@
-"""Stage 3 - validate: data-quality gate before any training happens.
-
-Checks schema, nulls, label domain, minimum volume and per-class support, and
-writes ``reports/data_validation.json``. Any failed check aborts the DVC
-pipeline (non-zero exit), so a bad data drop can never produce a model.
-"""
+"""Stage 3 - validate: data quality checks (columns, nulls, labels, row counts).
+If any check fails the pipeline stops, so bad data never reaches training."""
 
 from __future__ import annotations
 

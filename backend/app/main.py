@@ -1,8 +1,4 @@
-"""FastAPI application: REST API used by the web frontend.
-
-Run locally:  uvicorn app.main:app --reload --port 8000   (from ./backend, PYTHONPATH incl. ../src)
-OpenAPI docs: http://localhost:8000/docs
-"""
+"""FastAPI backend: the REST API used by the web UI (docs at /docs)."""
 
 from __future__ import annotations
 
@@ -62,7 +58,7 @@ class AppState:
 
 
 def _fingerprint(text: str) -> str:
-    """Log-safe identifier of a complaint: we never write complaint text to logs."""
+    """Short hash of the text, so complaint text is never written to logs."""
     return hashlib.sha256(text.encode()).hexdigest()[:12]
 
 

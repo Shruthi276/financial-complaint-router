@@ -1,15 +1,7 @@
-"""Retrainer service: closes the monitoring -> retraining loop.
-
-Triggers
---------
-* ``POST /webhook/alertmanager`` - Alertmanager fires ``DataDriftDetected``
-* ``POST /retrain``              - manual trigger (admin token) from the console
-
-Each trigger runs ``dvc repro --force`` in the mounted workspace (the same DAG
-developers run), in a background thread, guarded by a single-flight lock and a
-cool-down so a persisting alert cannot cause a retraining storm. The register
-stage decides whether the new model is promoted; the model-server supervisor
-then deploys it automatically.
+"""Retrainer service: runs `dvc repro --force` when
+  - Alertmanager sends a DataDriftDetected alert (POST /webhook/alertmanager), or
+  - an admin clicks retrain in the UI (POST /retrain).
+Only one run at a time, with a cool-down so one alert can't start many runs.
 """
 
 from __future__ import annotations
@@ -63,7 +55,7 @@ def _record(entry: dict) -> None:
 
 
 def _run(job: dict) -> None:
-    """Execute the DVC pipeline and record the outcome (runs in a worker thread)."""
+    """Run the DVC pipeline in a background thread and save the result."""
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     log_path = LOG_DIR / f"{job['id']}.log"
     env = {**os.environ, "PIPELINE_ID": job["id"], "TRAIN_TRIGGER": job["trigger"]}

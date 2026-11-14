@@ -1,15 +1,8 @@
-"""Stage 7 - register: model registry, acceptance gate and safe promotion.
+"""Stage 7 - register: add the model to the MLflow registry as @challenger.
 
-Every trained model becomes a new version of ``complaint-router`` in the MLflow
-Model Registry and receives the ``@challenger`` alias. It is promoted to
-``@champion`` (the alias the model server follows) only if:
-
-1. it clears the absolute acceptance bars in ``params.register``; and
-2. its test macro-F1 is not worse than the current champion by more than
-   ``max_regression``.
-
-Otherwise the current champion keeps serving - an automatic guard against bad
-retrains. ``scripts/rollback.py`` can move ``@champion`` back manually.
+It becomes @champion (the version that is served) only if it passes the limits
+in params.yaml (register block) and is not worse than the current champion.
+Otherwise the old model keeps serving.
 """
 
 from __future__ import annotations

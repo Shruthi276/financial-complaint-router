@@ -1,8 +1,6 @@
-# Financial Complaint Router - full stack.
-#   make up      -> build + start everything
-#   make train   -> run the DVC pipeline inside the retrainer container
-# Ports (host): 8080 web UI | 8000 API | 5000 MLflow | 5001 model server
-#               3000 Grafana | 9090 Prometheus | 9093 Alertmanager | 8001 retrainer
+# Financial Complaint Router - all services. Start with `make up`.
+# Ports: 8080 UI, 8000 API, 5000 MLflow, 5001 model server, 8001 retrainer,
+#        3000 Grafana, 9090 Prometheus, 9093 Alertmanager
 name: complaint-router
 
 x-ml-build: &ml-build
@@ -12,10 +10,8 @@ x-ml-build: &ml-build
 x-restart: &restart
   restart: unless-stopped
 
-# Memory limits (deploy.resources works in Compose and Swarm). They keep the whole
-# stack under ~7.5 GB, so a runaway container is OOM-killed and restarted instead
-# of exhausting the VM. Budget sized for an 8-10 GB VM; raise `retrainer` for
-# bigger training data.
+# Each service has a memory limit (total ~7.5 GB) so one container can't
+# freeze the whole VM. Increase the retrainer limit for bigger data.
 
 services:
   mlflow:

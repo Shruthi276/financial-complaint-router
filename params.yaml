@@ -1,14 +1,7 @@
-# ---------------------------------------------------------------------------
-# Single source of truth for every tunable value in the ML pipeline.
-# DVC tracks this file: changing a value here invalidates exactly the stages
-# that depend on it (see `params:` blocks in dvc.yaml).
-# ---------------------------------------------------------------------------
+# All pipeline settings. DVC re-runs only the stages whose params changed.
 
 ingest:
-  # "hf_mirror": download parquet shards of the CFPB complaint database
-  #              (with narratives) from the public HuggingFace mirror.
-  # "sample":    use the small sample committed to the repo (offline / CI).
-  # "local":     use parquet/csv file(s) you already have at `local_path`.
+  # hf_mirror = download CFPB data, sample = bundled sample, local = your own file
   source: hf_mirror
   hf_base_url: 
     https://huggingface.co/datasets/davidheineman/consumer-finance-complaints-large/resolve/main/data
@@ -57,8 +50,8 @@ evaluate:
 
 register:
   model_name: complaint-router
-  # Acceptance gate: a candidate is only promoted to @champion if it clears
-  # these absolute bars AND is not worse than the current champion.
+  # A new model becomes @champion only if it passes these limits
+  # and is not worse than the current champion.
   min_macro_f1: 0.70
   min_priority_recall: 0.65
   max_priority_flag_rate: 0.35 # an "urgent" flag on most complaints would be useless

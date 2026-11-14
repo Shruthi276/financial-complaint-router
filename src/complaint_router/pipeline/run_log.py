@@ -1,10 +1,5 @@
-"""Stage run bookkeeping for the pipeline management console.
-
-Every stage executes inside :func:`stage_run`, which appends one JSON line to
-``reports/pipeline_runs.jsonl`` with status, duration, row counts, throughput,
-git commit and (on failure) the error. The backend reads this file to show
-successes/failures and to export pipeline metrics to Prometheus.
-"""
+"""Logs every pipeline stage run (status, duration, rows, error) to
+reports/pipeline_runs.jsonl. The UI's pipeline console reads this file."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Pydantic request/response models = the API contract documented in docs/LLD.md."""
+"""Request and response models of the API (see docs/LLD.md)."""
 
 from __future__ import annotations
 

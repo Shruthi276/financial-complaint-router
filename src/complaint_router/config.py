@@ -13,12 +13,7 @@ PROJECT_ROOT = Path(os.environ.get("PROJECT_ROOT", Path(__file__).resolve().pare
 
 
 def load_params(path: str | Path | None = None) -> dict[str, Any]:
-    """Load the pipeline parameters (``params.yaml`` by default).
-
-    Raises:
-        FileNotFoundError: if the params file does not exist.
-        ValueError: if the file is not a YAML mapping.
-    """
+    """Load params.yaml (or the given file) as a dict."""
     params_path = Path(path) if path else PROJECT_ROOT / "params.yaml"
     if not params_path.exists():
         raise FileNotFoundError(f"Parameter file not found: {params_path}")

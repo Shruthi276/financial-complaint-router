@@ -1,9 +1,5 @@
-"""Stage 4 - split: class-balanced sampling and stratified train/val/test split.
-
-CFPB data is dominated by credit-reporting complaints (~60%). Capping each class
-at ``max_per_class`` keeps training fast on a laptop VM and stops the model from
-simply predicting the majority class.
-"""
+"""Stage 4 - split: cap each class at max_per_class (credit reporting is most of
+the data) and make a stratified train/val/test split."""
 
 from __future__ import annotations
 

@@ -1,17 +1,8 @@
-"""Stage 5 - train: fit the ComplaintRouter and log everything to MLflow.
+"""Stage 5 - train: train the ComplaintRouter and log it to MLflow.
 
-Tracked in MLflow
------------------
-* autolog (nested runs) for the two scikit-learn estimators
-* all ``train`` params, dataset sizes, class balance
-* tags: git commit, DVC data fingerprints (md5), runtime versions, pipeline id
-* validation metrics (accuracy, macro-F1, priority recall/precision) and the
-  tuned priority threshold
-* artifacts: per-class top terms (global explainability), the joblib router,
-  and the MLflow pyfunc model (with signature + input example) that the
-  model server loads.
-
-The run id is written to ``reports/train_run.json`` for evaluate/register.
+Besides sklearn autolog we log: params, data sizes, git commit and data md5
+tags, validation metrics, top terms per class and the pyfunc model.
+The run id is saved to reports/train_run.json for the next stages.
 """
 
 from __future__ import annotations
@@ -41,8 +32,7 @@ logger = get_logger(__name__)
 SPLIT_DIR = project_path("data", "splits")
 PACKAGE_DIR = str(Path(__file__).resolve().parents[1])  # src/complaint_router, shipped with the model
 MODEL_PATH = project_path("models", "router.joblib")
-# Explicit serving contract: `top_k_similar` is optional. (An inferred signature
-# would silently drop any column missing from the input example.)
+# Model input/output schema; top_k_similar is optional.
 SIGNATURE = ModelSignature(
     inputs=Schema([ColSpec("string", "text"), ColSpec("long", "top_k_similar", required=False)]),
     outputs=Schema([ColSpec("string", "result")]),

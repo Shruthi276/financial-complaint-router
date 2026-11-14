@@ -1,8 +1,4 @@
-"""Pure text-cleaning and record-transformation functions.
-
-Everything here is side-effect free so it can be unit tested and executed
-unchanged inside Ray workers (``map_batches``), pandas, or the inference model.
-"""
+"""Text cleaning functions, used in training (Ray/pandas) and at prediction time."""
 
 from __future__ import annotations
 
@@ -12,8 +8,7 @@ import pandas as pd
 
 from complaint_router.categories import is_high_priority_issue, map_product
 
-# CFPB already redacts personal data as "XX/XX/XXXX", "XXXX" etc. We collapse
-# those tokens and additionally mask anything that still looks like PII.
+# CFPB already hides personal data as "XXXX"; we remove those and mask other PII.
 _REDACTION_RE = re.compile(r"\bX{2,}(?:[/\-]X{2,})*\b", re.I)
 _EMAIL_RE = re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b")
 _PHONE_RE = re.compile(r"\(?\b\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b")
@@ -37,13 +32,8 @@ def mask_pii(text: str) -> str:
 
 
 def normalize_text(text: str | None, max_chars: int = 6000) -> str:
-    """Normalise a complaint narrative for modelling.
-
-    Steps: strip CFPB redaction tokens, mask PII, tag money amounts, lower-case,
-    remove punctuation/noise, collapse whitespace and truncate to ``max_chars``.
-    The same function is used at training and inference time, which removes
-    train/serve skew.
-    """
+    """Clean a complaint: remove XXXX tokens, mask PII, lower-case, remove
+    punctuation and extra spaces. Same function for training and prediction."""
     if not isinstance(text, str) or not text:
         return ""
     text = _MONEY_RE.sub(" moneyamt ", text)
@@ -56,12 +46,8 @@ def normalize_text(text: str | None, max_chars: int = 6000) -> str:
 
 
 def clean_records(batch: pd.DataFrame, min_chars: int = 50, max_chars: int = 6000) -> pd.DataFrame:
-    """Transform a batch of raw CFPB rows into model-ready rows.
-
-    Used as the Ray Data ``map_batches`` function (batch_format="pandas").
-    Rows without narrative, with an unmapped product, or too short after
-    cleaning are dropped.
-    """
+    """Turn a batch of raw CFPB rows into training rows (used by Ray map_batches).
+    Drops rows with no text, an unknown product, or too little text."""
     if batch.empty:
         return pd.DataFrame(columns=CLEAN_COLUMNS)
 

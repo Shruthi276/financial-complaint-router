@@ -1,15 +1,9 @@
-"""Stage 1 - ingest: acquire raw CFPB complaints into ``data/raw/``.
+"""Stage 1 - ingest: get raw CFPB complaints into data/raw/.
 
-Sources (``params.ingest.source``):
-* ``hf_mirror`` - parquet shards of the CFPB Consumer Complaint Database
-  (Apache-2.0 mirror on HuggingFace). Needed because the live CFPB export no
-  longer publishes the narrative text column.
-* ``local``     - a parquet/csv file you provide.
-* ``sample``    - the small sample committed in ``data/sample`` (offline/CI).
-
-Only the columns the pipeline needs are kept, which cuts the raw size ~3x.
-Downloads are cached in ``.cache/downloads`` so ``dvc repro --force`` does not
-download the same shard twice.
+ingest.source in params.yaml:
+  hf_mirror - download CFPB data from the HuggingFace mirror
+  local     - use your own parquet/csv file
+  sample    - use the small sample in data/sample (works offline)
 """
 
 from __future__ import annotations

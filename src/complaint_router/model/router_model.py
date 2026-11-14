@@ -1,21 +1,11 @@
-"""The ComplaintRouter: category routing + priority flag + explanation + similar cases.
+"""ComplaintRouter model: predicts the category, the priority flag, explains the
+prediction and finds similar past complaints.
 
-Design
-------
-* One shared TF-IDF vectoriser (word 1-2 grams) turns text into sparse vectors.
-* A linear multi-class classifier predicts the routing category. Linear models
-  were chosen deliberately: they train in seconds on a laptop VM, are strong
-  baselines for topic classification, and are directly explainable
-  (contribution of term t to class c = tfidf(t) * weight(c, t)).
-* A balanced logistic regression predicts the high-priority flag; its decision
-  threshold is tuned on the validation set to hit a target recall, because
-  missing an urgent complaint is costlier than reviewing an extra one.
-  A transparent business rule sits on top: a complaint describing a severe
-  situation (foreclosure, repossession, garnishment, eviction, being sued) is
-  always escalated (``priority_decision``); softer signals such as "fraud" are
-  only shown to the agent because they are too common to decide alone.
-* Similar past complaints are retrieved by cosine similarity over the same
-  TF-IDF space (vectors are L2-normalised, so a sparse dot product suffices).
+- TF-IDF (1-2 word grams) turns text into vectors.
+- A linear classifier predicts the category (fast to train and easy to explain).
+- A separate logistic regression predicts priority. Its threshold is tuned for
+  recall, and severe cases (foreclosure, eviction, ...) are always escalated.
+- Similar complaints = cosine similarity in the same TF-IDF space.
 """
 
 from __future__ import annotations
@@ -39,7 +29,7 @@ SUPPORTED_MODELS = ("logreg", "sgd", "cnb")
 
 @dataclass
 class RouterConfig:
-    """Hyper-parameters of the router (mirrors the ``train`` block of params.yaml)."""
+    """Model settings (same names as the `train` block in params.yaml)."""
 
     model_type: str = "logreg"
     max_features: int = 50000
@@ -81,7 +71,6 @@ class ComplaintRouter:
         self._index_meta: pd.DataFrame | None = None
         self._vocab_terms: np.ndarray | None = None
 
-    # ------------------------------------------------------------------ training
     def _build_classifier(self) -> Any:
         cfg = self.config
         if cfg.model_type == "logreg":
@@ -93,23 +82,15 @@ class ComplaintRouter:
 
     def fit(self, texts: pd.Series, categories: pd.Series, priorities: pd.Series,
             metadata: pd.DataFrame | None = None) -> ComplaintRouter:
-        """Fit vectoriser, category classifier, priority model and similarity index.
-
-        Args:
-            texts: already-normalised complaint texts.
-            categories: routing category keys.
-            priorities: 0/1 high-priority labels.
-            metadata: optional frame aligned with ``texts`` holding complaint_id,
-                issue, date_received, company_response (shown for similar cases).
-        """
+        """Train everything. `texts` must already be cleaned; `metadata` (optional)
+        holds extra columns shown for similar complaints."""
         X = self.fit_vectorizer(texts)
         self.fit_category(X, categories)
         self.fit_priority(X, priorities)
         self.build_index(X, texts, categories, priorities, metadata)
         return self
 
-    # The individual steps are public so the training stage can wrap each one in
-    # its own (nested) MLflow run.
+    # Separate steps so train.py can log each one as its own MLflow run.
     def fit_vectorizer(self, texts: pd.Series) -> sparse.csr_matrix:
         """Fit the TF-IDF vocabulary and return the training matrix."""
         if len(texts) == 0:
@@ -181,7 +162,6 @@ class ComplaintRouter:
         self.priority_threshold = threshold
         return threshold
 
-    # ----------------------------------------------------------------- inference
     def _check_fitted(self) -> None:
         if self.vectorizer is None or self.classifier is None or self.priority_model is None:
             raise RuntimeError("ComplaintRouter is not fitted")
@@ -298,7 +278,6 @@ class ComplaintRouter:
             })
         return out
 
-    # ------------------------------------------------------------- persistence
     def save(self, path: str) -> None:
         """Serialise the whole router to a single joblib file."""
         self._check_fitted()
@@ -312,7 +291,7 @@ class ComplaintRouter:
 
     @classmethod
     def load(cls, path: str) -> ComplaintRouter:
-        """Load a router saved with :meth:`save`."""
+        """Load a model saved with save()."""
         payload = joblib.load(path)
         router = cls(RouterConfig(**payload["config"]))
         s = payload["state"]

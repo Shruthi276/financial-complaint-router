@@ -1,12 +1,8 @@
-"""MLflow ``pyfunc`` wrapper so the router can be served with ``mlflow models serve``.
+"""MLflow pyfunc wrapper so the model can be served with `mlflow models serve`.
 
-Request  (POST /invocations):
-    {"dataframe_records": [{"text": "...", "top_k_similar": 3}]}
-Response:
-    {"predictions": [{"result": "<JSON string with the routing decision>"}]}
-
-The decision is returned as a JSON string column because the MLflow scoring
-server only guarantees round-tripping of flat, scalar DataFrame columns.
+Request:  {"dataframe_records": [{"text": "...", "top_k_similar": 3}]}
+Response: {"predictions": [{"result": "<prediction as a JSON string>"}]}
+(The result is a JSON string because MLflow only returns flat columns.)
 """
 
 from __future__ import annotations

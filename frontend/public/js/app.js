@@ -1,6 +1,5 @@
-/* Complaint Router web UI.
- * Talks to the backend exclusively through REST (API_BASE_URL from config.js).
- * No framework: small helpers, every server string is HTML-escaped before rendering. */
+// Complaint Router web UI. Talks to the backend only through REST
+// (API_BASE_URL comes from config.js). All server text is HTML-escaped.
 "use strict";
 
 const CFG = window.APP_CONFIG || {};
@@ -26,7 +25,7 @@ let categories = [];
 let lastPrediction = null;
 let lastText = "";
 
-/* ------------------------------------------------------------------ API */
+// ---- api ----
 class ApiError extends Error {
   constructor(message, status) { super(message); this.status = status; }
 }
@@ -62,7 +61,7 @@ function toast(msg) {
   toast._t = setTimeout(() => t.classList.remove("show"), 3500);
 }
 
-/* ------------------------------------------------------------- tabs */
+// ---- tabs ----
 function showView(name) {
   document.querySelectorAll(".tab").forEach((b) => {
     const on = b.dataset.view === name;
@@ -75,7 +74,7 @@ function showView(name) {
   if (name === "monitoring") loadMonitoring();
 }
 
-/* ----------------------------------------------------------- status */
+// ---- status ----
 async function refreshStatus() {
   const dot = $("#status-dot"), text = $("#status-text");
   try {
@@ -89,7 +88,7 @@ async function refreshStatus() {
   }
 }
 
-/* ------------------------------------------------------------ route */
+// ---- route ----
 function validateInput() {
   const v = $("#complaint").value;
   const n = v.trim().length;
@@ -190,7 +189,7 @@ async function sendFeedback(correctCategory, correctPriority) {
   } catch (e) { toast(`Feedback not saved: ${e.message}`); }
 }
 
-/* ---------------------------------------------------------- pipeline */
+// ---- pipeline ----
 function kpi(label, value, cls = "") {
   return `<div class="kpi ${cls}"><div class="v">${esc(value)}</div><div class="k">${esc(label)}</div></div>`;
 }
@@ -339,7 +338,7 @@ async function startRetrain() {
   };
 }
 
-/* -------------------------------------------------------- monitoring */
+// ---- monitoring ----
 async function loadMonitoring() {
   const dash = `${LINKS.grafana}/d/complaint-router/financial-complaint-router?orgId=1&refresh=10s&kiosk`;
   const frame = $("#grafana-frame");
@@ -357,7 +356,7 @@ async function loadMonitoring() {
   } catch (e) { $("#drift-kpis").innerHTML = kpi("Drift", "unavailable", "bad"); }
 }
 
-/* ------------------------------------------------------------- init */
+// ---- init ----
 async function init() {
   document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => showView(b.dataset.view)));
   $("#complaint").addEventListener("input", validateInput);

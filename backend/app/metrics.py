@@ -1,13 +1,5 @@
-"""Prometheus instrumentation of the backend (exposed on ``GET /metrics``).
-
-Covers four information points:
-1. API health      - request rate, latency, status codes
-2. Model behaviour - latency of the model server, prediction distribution,
-                     confidence, priority rate, errors, served version
-3. Data drift      - PSI / OOV signals from the rolling window
-4. Pipeline        - last duration / throughput / status of every DVC stage
-                     and the champion's offline metrics (collected at scrape time)
-"""
+"""Prometheus metrics of the backend (GET /metrics):
+API requests and latency, predictions and confidence, drift, pipeline stages."""
 
 from __future__ import annotations
 

@@ -1,15 +1,10 @@
-"""Stage 2 - preprocess: distributed cleaning with Ray Data.
+"""Stage 2 - preprocess: clean the raw data in parallel with Ray Data.
 
-raw parquet --(Ray read_parquet)--> blocks --(map_batches: clean_records)-->
---> pandas --(dedupe)--> data/processed/complaints_clean.parquet
+raw parquet -> Ray map_batches(clean_records) -> remove duplicates
+-> data/processed/complaints_clean.parquet
 
-``clean_records`` (see text_cleaning.py) normalises text, masks PII, maps the
-CFPB product to a routing category and derives the weak priority label. Ray
-parallelises it across ``preprocess.num_cpus`` workers; the same function runs
-in plain pandas when ``preprocess.engine = pandas`` (tiny machines / tests).
-
-Agent feedback collected through the web app (``data/feedback``) is decrypted
-and appended as extra labelled examples, closing the human-in-the-loop cycle.
+Set preprocess.engine: pandas to run without Ray. Agent feedback from the
+web app is decrypted and added as extra training rows.
 """
 
 from __future__ import annotations

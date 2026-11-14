@@ -1,11 +1,7 @@
-"""Combine the mandatory project documents into one PDF: docs/Project_Documentation.pdf
+"""Combine the docs/*.md files into docs/Project_Documentation.pdf (make docs-pdf).
 
-    python3 scripts/build_docs_pdf.py        (or: make docs-pdf)
-
-How it works: the Markdown files in docs/ are placed into one HTML page, the
-browser renders them (marked.js for Markdown, mermaid.js for the architecture
-diagram), and headless Chrome prints that page to PDF.
-Needs: google-chrome or chromium, and internet access for the two JS libraries.
+The Markdown is put in one HTML page (rendered with marked.js and mermaid.js)
+and printed to PDF with headless Chrome. Needs Chrome and internet access.
 """
 
 from __future__ import annotations
@@ -22,7 +18,7 @@ DOCS = ROOT / "docs"
 OUT_PDF = DOCS / "Project_Documentation.pdf"
 OUT_HTML = DOCS / "Project_Documentation.html"
 
-# (file, title shown in the table of contents) - in the order the brief lists them.
+# (file, title in the table of contents)
 SECTIONS = [
     ("architecture.md", "1. Architecture diagram and blocks"),
     ("HLD.md", "2. High-level design"),
@@ -99,7 +95,7 @@ def main() -> None:
     for filename, title in SECTIONS:
         text = (DOCS / filename).read_text(encoding="utf-8")
         toc.append(f"<li>{html.escape(title)}</li>")
-        # The Markdown is stored raw in a script tag; only "</script" would break it.
+        # Markdown goes inside a <script> tag, so escape "</script".
         docs.append('<script type="text/markdown">\n' + text.replace("</script", "<\\/script") + "\n</script>")
 
     page = (PAGE.replace("__DATE__", date.today().strftime("%d %B %Y"))

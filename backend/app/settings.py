@@ -1,4 +1,4 @@
-"""Backend configuration, read once from environment variables (12-factor style)."""
+"""Backend settings, read from environment variables."""
 
 from __future__ import annotations
 

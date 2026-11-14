@@ -1,8 +1,7 @@
-"""Domain knowledge: routing categories, the CFPB product mapping and priority rules.
+"""Routing categories, the CFPB product -> category mapping and the priority rules.
 
-CFPB renamed its product taxonomy several times (2011, 2017, 2022), so the raw
-``product`` column contains ~20 overlapping labels. We consolidate them into nine
-routing categories, each owned by one operations team.
+CFPB renamed its products a few times, so ~20 raw product names are merged
+into 9 categories, each handled by one team.
 """
 
 from __future__ import annotations
@@ -68,11 +67,8 @@ PRODUCT_TO_CATEGORY: dict[str, str] = {
     "Virtual currency": "money_transfer",
 }
 
-# Weak-supervision rule for the priority label used in TRAINING.
-# CFPB has no "urgency" field, so we label a complaint high priority when the
-# consumer-selected issue/sub-issue describes fraud, loss of a home/vehicle,
-# inability to pay, or abusive/illegal collection conduct. These are the issue
-# types where regulators expect expedited handling.
+# Training label for priority. CFPB has no urgency field, so a complaint is
+# marked high priority when its issue/sub-issue contains one of these words.
 HIGH_PRIORITY_ISSUE_PATTERNS: tuple[str, ...] = (
     "fraud", "scam", "identity theft", "unauthorized", "embezzlement", "stolen",
     "foreclosure", "repossess", "struggling to pay", "struggling to repay",
@@ -80,9 +76,8 @@ HIGH_PRIORITY_ISSUE_PATTERNS: tuple[str, ...] = (
     "negative or legal action", "harass", "abusive", "lawsuit", "garnish",
 )
 
-# Urgency SIGNALS checked in the complaint text at inference time and shown to
-# the agent. Most are too common to decide alone (e.g. "fraud" appears in ~15%
-# of credit-report disputes), so the model score decides...
+# Words searched in the complaint text at prediction time and shown to the agent.
+# Most are too common to decide on their own, so the model score decides...
 URGENT_TEXT_KEYWORDS: tuple[str, ...] = (
     "fraud", "scam", "identity theft", "stolen", "unauthorized", "hacked",
     "foreclosure", "eviction", "evicted", "repossess", "garnish", "lawsuit", "sued",
@@ -90,9 +85,7 @@ URGENT_TEXT_KEYWORDS: tuple[str, ...] = (
     "servicemember", "disabled", "medical emergency",
 )
 
-# ...except for these severe, high-precision situations (imminent loss of home,
-# vehicle, wages or shelter), which are ALWAYS escalated. Precision measured on
-# the CFPB test split: foreclosure 0.58, repossess 0.57, sued 0.48, garnish 0.44.
+# ...except these severe cases, which are always escalated.
 ESCALATION_KEYWORDS: frozenset[str] = frozenset({
     "foreclosure", "eviction", "evicted", "repossess", "garnish", "sued", "homeless", "medical emergency",
 })

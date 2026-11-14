@@ -1,9 +1,5 @@
-"""Read-only view of the MLflow tracking server / model registry.
-
-Used to (a) know which model version is serving, (b) fetch the drift reference
-statistics logged with the champion's run, (c) list versions and recent runs
-for the pipeline console.
-"""
+"""Reads the MLflow model registry: current champion version, its drift
+reference statistics, and the list of versions/runs for the UI."""
 
 from __future__ import annotations
 
@@ -19,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class RegistryClient:
-    """Thin wrapper around ``mlflow.MlflowClient`` with defensive error handling."""
+    """Small wrapper around MlflowClient that never crashes the API."""
 
     def __init__(self, tracking_uri: str, model_name: str, experiment_name: str) -> None:
         self.tracking_uri = tracking_uri

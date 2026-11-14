@@ -1,8 +1,5 @@
-"""REST client for the MLflow model server (``mlflow models serve``).
-
-The backend never imports the model: inference is a REST call, so the model
-server can be redeployed / rolled back independently of the API.
-"""
+"""Client for the MLflow model server. The backend only calls it over REST,
+so the model can be changed or rolled back without touching the API."""
 
 from __future__ import annotations
 
@@ -44,12 +41,7 @@ class ModelServerClient:
         return up
 
     async def predict(self, texts: list[str], top_k_similar: int = 3) -> list[dict[str, Any]]:
-        """Return one decision dict per text.
-
-        Raises:
-            ModelUnavailableError: connection refused / timeout / 503.
-            ModelResponseError: 4xx/5xx from the scorer or malformed JSON.
-        """
+        """Return one prediction dict per text."""
         payload = {"dataframe_records": [{"text": t, "top_k_similar": top_k_similar} for t in texts]}
         start = time.perf_counter()
         try:

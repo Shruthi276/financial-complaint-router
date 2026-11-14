@@ -8,11 +8,11 @@ Banks receive large volumes of free-text complaints that are triaged by hand: sl
 2. a **priority flag** for complaints that need faster handling,
 3. a **confidence score**, an explanation, and **similar past complaints**.
 
-| Metric (test set) | Target (acceptance gate in `params.yaml`) | Achieved (v2, real CFPB data) |
+| Metric (test set) | Target (acceptance gate in `params.yaml`) | Achieved (champion v2, SGD, real CFPB data) |
 |---|---|---|
-| Routing macro-F1 (9 classes) | ≥ 0.70 | **0.79** (accuracy 0.81; 0.88 when confident) |
+| Routing macro-F1 (9 classes) | ≥ 0.70 | **0.80** (accuracy 0.82; 0.90 when confident) |
 | Urgent-complaint recall | ≥ 0.65 | **0.74** |
-| Share of complaints flagged urgent | ≤ 35 % | **31.5 %** (true urgent rate 17.9 %) |
+| Share of complaints flagged urgent | ≤ 35 % | **31.2 %** (true urgent rate 17.9 %) |
 | Single-request latency (model) | < 1 s p95 | **~80-110 ms** |
 | Preprocessing throughput (Ray, 2 CPUs) | - | **~10,000 rows/s** (650k rows in 64 s) |
 
@@ -39,6 +39,18 @@ Banks receive large volumes of free-text complaints that are triaged by hand: sl
 | Drift detection | PSI of predicted-category mix, PSI of text length, rise in out-of-vocabulary rate, over a rolling window of 200 requests | Label-free (true labels arrive late in production). Cheap, interpretable. | KS tests on embeddings: costlier, less interpretable. |
 | Security | Feedback encrypted at rest (Fernet / AES); admin token for retraining; complaint text never logged (SHA-256 fingerprint only); PII masking; non-root containers; CORS allow-list | Complaint text is personal financial data. | - |
 | UI | Static HTML/JS (no build step) | Easy to inspect and fast. Configurable API base URL keeps the UI fully decoupled from the backend. | React: a build toolchain without user benefit here. |
+
+### Model comparison
+
+All three model types were trained on the same data split (`make compare`, logged in MLflow and DVC experiments). The register stage picked the winner automatically.
+
+| Model (`train.model_type`) | Test accuracy | Test macro-F1 | Registry result |
+|---|---|---|---|
+| Logistic regression (`logreg`) | 0.812 | 0.787 | v1, first champion |
+| **SGD, modified Huber loss (`sgd`)** | **0.821** | **0.801** | **v2, promoted to champion** |
+| Complement Naive Bayes (`cnb`) | 0.788 | 0.739 | v3, rejected (worse than champion) |
+
+SGD is now the default in `params.yaml`. Priority recall is the same for all three (0.74) because the priority model does not depend on `model_type`.
 
 ## 4. Software design paradigm
 

@@ -1,8 +1,4 @@
-"""TC-I01..I04: run the real pipeline stages on the committed sample in an isolated workspace.
-
-Each stage runs as a subprocess (exactly like `dvc repro`) with PROJECT_ROOT
-pointing at a temporary copy of the repository config and an MLflow file store.
-"""
+"""TC-I01..I04: run the real pipeline stages on the sample data in a temp folder."""
 
 from __future__ import annotations
 

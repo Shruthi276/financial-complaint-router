@@ -3,7 +3,7 @@
 ## 1. System diagram
 
 ```mermaid
-flowchart LR
+flowchart TB
   subgraph User["Browser (non-technical agent)"]
     UI["Web UI<br/>nginx :8080<br/>Route | Pipeline console | Monitoring | Help"]
   end

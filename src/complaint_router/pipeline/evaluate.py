@@ -1,12 +1,5 @@
-"""Stage 6 - evaluate: test-set metrics, plots and drift reference statistics.
-
-Outputs (all also logged to the training run in MLflow):
-* reports/metrics.json            - DVC metrics (``dvc metrics show / diff``)
-* reports/per_class_metrics.json  - precision / recall / F1 per category
-* reports/confusion_matrix.csv    - DVC plot (``dvc plots show``)
-* reports/confusion_matrix.png
-* reports/reference_stats.json    - baseline distributions for drift detection
-"""
+"""Stage 6 - evaluate: test metrics, confusion matrix and the reference
+statistics used for drift detection. Results go to reports/ and MLflow."""
 
 from __future__ import annotations
 
