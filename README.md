@@ -92,7 +92,7 @@ Makefile                    short commands for everything (`make help`)
 
 Everything else (Docker, Git LFS, DVC, Python 3.11) is installed by the setup script. **No cloud services are used.**
 
-> **VirtualBox tip:** give the VM about 60% of your computer's RAM and keep the slider in the green zone. Change it only while the VM is powered off. Avoid running heavy programs (e.g. a browser with many tabs) in the VM while training.
+
 
 ## 4. Setup (one time)
 
@@ -107,17 +107,18 @@ bash scripts/setup_ubuntu.sh
 newgrp docker            # only if Docker was just installed
 ```
 
-`.env` holds the secrets (admin token, encryption key). It is private and never committed; `.env.example` shows what it contains.
+`.env` holds the secrets (admin token, encryption key). It is private and never committed; `.env.example` shows what it contains.  
 
 ## 5. Running the application
 
 ```bash
-# Start all 10 services (first build takes ~10 minutes)
+
+
 make up
 
 # Train the first model (only needed once)
 make train            # real CFPB data: downloads ~114 MB, takes ~5 minutes
-# or
+
 make train-sample     # small bundled sample: offline, ~1 minute
 
 # Check that everything is healthy and make a test prediction
@@ -143,8 +144,8 @@ Stop everything with `make down`. Your data, models and MLflow history are kept.
 
 1. Open http://localhost:8080. The **Route a complaint** tab opens first.
 2. Paste a complaint (at least 20 characters) or click one of the examples, then press **Route complaint**.
-3. You'll see the **team**, **category**, **confidence**, **priority flag**, the **key words** behind the decision, and **similar past complaints**.
-4. Press **Correct** if the result is right, or pick the right team and press **Send correction**. Feedback is stored encrypted and used in the next training.
+3. The result shows three boxes, **Routed to** (team), **Priority** (Urgent / Normal) and **Confidence** (High / Medium / Low), followed by a one-line **Next step** (*Handle first*, *Check before assigning* or *Ready to assign*), the key words behind the decision and similar past complaints. **Copy summary** copies it for your ticket.
+4. Press **Yes, correct** if the result is right, or pick the right team and press **Send correction**. Feedback is stored encrypted and used in the next training.
 
 The other tabs are **Pipeline console** (pipeline graph, stage runs, failures, model versions, retrain button), **Monitoring** (live Grafana dashboards) and **Help**. The full guide for non-technical users is in [docs/user_manual.md](docs/user_manual.md).
 

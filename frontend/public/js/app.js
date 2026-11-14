@@ -24,6 +24,8 @@ const fmtSec = (s) => s == null ? "–" : s < 60 ? `${Number(s).toFixed(1)} s` :
 let categories = [];
 let lastPrediction = null;
 let lastText = "";
+let modelUp = true;
+let routing = false;
 
 // ---- api ----
 class ApiError extends Error {
@@ -77,15 +79,23 @@ function showView(name) {
 // ---- status ----
 async function refreshStatus() {
   const dot = $("#status-dot"), text = $("#status-text");
+  let problem = "";
   try {
     const h = await api("/health", { timeout: 6000 });
-    const up = h.model_server === "up";
-    dot.className = `dot ${up ? "up" : "down"}`;
-    text.textContent = up ? `Model v${h.model_version ?? "?"} online` : "Model offline";
+    modelUp = h.model_server === "up";
+    text.textContent = modelUp ? `Model v${h.model_version ?? "?"} online` : "Model offline";
+    if (!modelUp) problem = "The model is starting or has not been trained yet. Routing is paused, please try again in a minute.";
   } catch {
-    dot.className = "dot down";
+    modelUp = false;
     text.textContent = "Server unreachable";
+    problem = "The application server cannot be reached. Check that the application is running, then reload this page.";
   }
+  dot.className = `dot ${modelUp ? "up" : "down"}`;
+  // server came back after being offline: load the examples again without a page reload
+  if (modelUp && !categories.length) loadLookups();
+  // tell the user why the button is disabled instead of silently disabling it
+  $("#offline-banner").innerHTML = problem ? `<div class="banner error" style="margin:0 0 20px">${esc(problem)}</div>` : "";
+  validateInput();
 }
 
 // ---- route ----
@@ -94,99 +104,176 @@ function validateInput() {
   const n = v.trim().length;
   $("#char-count").textContent = `${v.length.toLocaleString()} / 10,000 characters`;
   let hint = "";
-  if (n > 0 && n < MIN_CHARS) hint = "Please write a bit more (at least 20 characters).";
+  if (n > 0 && n < MIN_CHARS) hint = `Please write a bit more (${MIN_CHARS - n} more characters).`;
   else if (n >= MIN_CHARS && (v.match(/[a-z]/gi) || []).length < 10) hint = "The text should describe the problem in words.";
   $("#input-hint").textContent = hint;
-  $("#btn-route").disabled = n < MIN_CHARS || n > MAX_CHARS || !!hint;
+  $("#btn-route").disabled = routing || !modelUp || n < MIN_CHARS || n > MAX_CHARS || !!hint;
+  // if the text was changed after routing, the shown result no longer matches it
+  const card = $("#result-card");
+  if (card) {
+    const stale = v.trim() !== lastText;
+    card.classList.toggle("stale", stale);
+    $("#stale-note").hidden = !stale;
+    document.querySelectorAll("#fb-correct, #fb-send").forEach((b) => { b.disabled = stale; });
+  }
 }
 
 function setLoading(on) {
-  const b = $("#btn-route");
-  b.disabled = on;
-  b.innerHTML = on ? '<span class="spinner"></span> Routing…' : "Route complaint";
-  if (!on) validateInput();
+  routing = on;
+  $("#btn-route").innerHTML = on ? '<span class="spinner"></span> Routing…' : "Route complaint →";
+  if (on) {
+    $("#result").innerHTML = `<div class="card" aria-busy="true">
+      <div class="tiles">${'<div class="tile"><div class="skeleton" style="height:12px;width:60%"></div><div class="skeleton" style="height:22px;margin-top:10px"></div></div>'.repeat(3)}</div>
+      <div class="skeleton" style="height:56px;margin-top:12px"></div>
+      <div class="skeleton" style="height:14px;width:40%;margin-top:22px"></div>
+      <div class="skeleton" style="height:14px;width:80%;margin-top:10px"></div></div>`;
+  }
+  validateInput();
 }
 
 async function routeComplaint() {
   const text = $("#complaint").value.trim();
-  if (text.length < MIN_CHARS) return;
+  if (text.length < MIN_CHARS || routing) return;
   setLoading(true);
   try {
     const res = await api("/api/v1/predict", { method: "POST", body: JSON.stringify({ text, top_k_similar: 3 }) });
     lastPrediction = res; lastText = text;
     renderResult(res);
   } catch (e) {
-    $("#result").innerHTML = `<div class="card"><div class="banner error"><strong>Could not route this complaint.</strong><br>${esc(e.message)}</div></div>`;
+    lastPrediction = null;
+    $("#result").innerHTML = `<div class="card"><div class="banner error" style="margin:0"><strong>Could not route this complaint.</strong><br>${esc(e.message)}</div></div>`;
   } finally { setLoading(false); }
+}
+
+// plain-language confidence level
+function confidenceLevel(c) {
+  if (c >= 0.8) return { word: "High", cls: "" };
+  if (c >= 0.5) return { word: "Medium", cls: "" };
+  return { word: "Low", cls: "low" };
+}
+
+// what the agent should do next, in one sentence
+function nextStep(r) {
+  if (r.priority === "high") {
+    return { cls: "high", ico: "!", title: "Handle first",
+      text: `Urgent case. Send it to the ${r.team} today and escalate it to a team lead.` };
+  }
+  if (r.low_confidence) {
+    return { cls: "warn", ico: "?", title: "Check before assigning",
+      text: "The system is not sure. Read the complaint, pick the right team below and send the correction." };
+  }
+  return { cls: "ok", ico: "✓", title: "Ready to assign",
+    text: `Send it to the ${r.team} in the normal queue.` };
 }
 
 function renderResult(r) {
   const high = r.priority === "high";
+  const conf = confidenceLevel(r.confidence);
+  const step = nextStep(r);
   const alt = r.alternatives.map((a) => `
     <div class="alt"><span>${esc(a.category_label)}</span>
-      <div class="meter"><span style="width:${pct(a.probability)}"></span></div><span>${pct(a.probability)}</span></div>`).join("");
+      <div class="meter"><span style="width:${pct(a.probability)}"></span></div><span class="p">${pct(a.probability)}</span></div>`).join("");
   const terms = r.explanation.length
     ? r.explanation.map((t) => `<span class="term" title="influence ${esc(t.weight)}">${esc(t.term)}</span>`).join("")
-    : '<span class="muted">No strong keywords found.</span>';
+    : '<span class="muted small">No strong keywords found.</span>';
   const similar = r.similar_complaints.length ? r.similar_complaints.map((s) => `
     <div class="similar">
-      <div class="meta"><span><strong>${esc(s.category_label)}</strong></span><span>${pct(s.similarity)} similar</span>
-        ${s.priority === "high" ? '<span class="pill high">URGENT</span>' : ""}
-        ${s.date_received ? `<span>${esc(s.date_received)}</span>` : ""}
-        ${s.company_response ? `<span>Outcome: ${esc(s.company_response)}</span>` : ""}</div>
-      ${s.issue ? `<div class="small"><em>${esc(s.issue)}</em></div>` : ""}
-      <div class="snippet">${esc(s.snippet)}…</div>
-    </div>`).join("") : '<p class="muted">No similar complaints found.</p>';
-  const options = categories.map((c) => `<option value="${esc(c.key)}" ${c.key === r.category ? "selected" : ""}>${esc(c.label)} - ${esc(c.team)}</option>`).join("");
+      <div class="meta"><strong>${esc(s.category_label)}</strong><span>${pct(s.similarity)} similar</span>
+        ${s.priority === "high" ? '<span class="pill high">Urgent</span>' : ""}
+        ${s.date_received ? `<span>${esc(s.date_received)}</span>` : ""}</div>
+      ${s.issue ? `<div class="issue">${esc(s.issue)}</div>` : ""}
+      <div class="snippet">“${esc(s.snippet)}…”</div>
+      ${s.company_response ? `<div class="meta" style="margin-top:6px"><span>Outcome: ${esc(s.company_response)}</span></div>` : ""}
+    </div>`).join("") : '<p class="muted small">No similar complaints found.</p>';
+  const options = categories.map((c) => `<option value="${esc(c.key)}" ${c.key === r.category ? "selected" : ""}>${esc(c.team)} (${esc(c.label)})</option>`).join("");
 
   $("#result").innerHTML = `
-    <div class="card">
-      <div class="decision">
-        <div>
-          <div class="label">Send to</div>
-          <div class="team">${esc(r.team)}</div>
-          <div class="category">Category: ${esc(r.category_label)}</div>
+    <div class="card" id="result-card">
+      <div id="stale-note" class="banner info" style="margin:0 0 14px" hidden>The text was changed. Click <strong>Route complaint</strong> again to update this result.</div>
+      <div class="tiles">
+        <div class="tile">
+          <div class="label">Routed to</div>
+          <div class="value">${esc(r.team)}</div>
+          <div class="sub">${esc(r.category_label)}</div>
         </div>
-        <div>${high ? '<span class="pill high">URGENT</span>' : '<span class="pill normal">Normal priority</span>'}</div>
+        <div class="tile ${high ? "urgent" : "normal"}">
+          <div class="label">Priority</div>
+          <div class="value">${high ? "Urgent" : "Normal"}</div>
+          <div class="sub">Urgency score ${pct(r.priority_score)}</div>
+        </div>
+        <div class="tile ${conf.cls}">
+          <div class="label">Confidence</div>
+          <div class="value">${pct(r.confidence)}</div>
+          <div class="sub">${conf.word}${r.low_confidence ? ", needs review" : ""}</div>
+          <div class="meter ${conf.cls}"><span style="width:${pct(r.confidence)}"></span></div>
+        </div>
       </div>
-      <div class="block">
-        <div class="row-between"><strong>Confidence</strong><span>${pct(r.confidence)} ${r.low_confidence ? '<span class="pill warn">Needs review</span>' : ""}</span></div>
-        <div class="meter ${r.low_confidence ? "low" : ""}"><span style="width:${pct(r.confidence)}"></span></div>
+
+      <div class="next-step ${step.cls}">
+        <span class="ico" aria-hidden="true">${step.ico}</span>
+        <div><strong>${esc(step.title)}</strong><span class="small">${esc(step.text)}</span></div>
       </div>
-      ${r.low_confidence ? '<div class="banner warn">The system is not sure about this one. Please read the complaint and confirm the team below.</div>' : ""}
-      ${high ? `<div class="banner high"><strong>Handle first.</strong> This complaint looks urgent (urgency score ${pct(r.priority_score)}).</div>` : ""}
-      <div class="block"><strong>Why this priority</strong><ul class="reasons">${r.priority_reasons.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
-      <div class="block"><strong>Words that drove the decision</strong><div class="terms" style="margin-top:6px">${terms}</div></div>
-      <div class="block"><strong>Other possible categories</strong>${alt}</div>
-      <div class="block">
-        <strong>Was this routing correct?</strong>
-        <div class="feedback" style="margin-top:8px">
-          <button class="btn ghost" id="fb-correct">✓ Correct</button>
+
+      <div class="block"><span class="label">Why this priority</span><ul class="reasons">${r.priority_reasons.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
+      <div class="block"><span class="label">Words that drove the decision</span><div class="terms">${terms}</div></div>
+      <div class="block"><span class="label">Other possible categories</span>${alt}</div>
+
+      <div class="block" id="feedback-block">
+        <span class="label">Was this right?</span>
+        <div class="feedback">
+          <button class="btn ghost small" id="fb-correct">✓ Yes, correct</button>
+          <span class="muted small">or change it:</span>
           <select id="fb-category" aria-label="Correct team">${options}</select>
-          <label class="small"><input type="checkbox" id="fb-urgent" ${high ? "checked" : ""}> urgent</label>
-          <button class="btn ghost" id="fb-send">Send correction</button>
+          <label class="check"><input type="checkbox" id="fb-urgent" ${high ? "checked" : ""}> Urgent</label>
+          <button class="btn ghost small" id="fb-send">Send correction</button>
         </div>
       </div>
-      <p class="muted small" style="margin-top:14px">Model v${esc(r.model_version ?? "?")} · ${esc(r.latency_ms)} ms · ref ${esc(r.prediction_id.slice(0, 8))}</p>
+
+      <div class="result-foot">
+        <span class="meta">Model v${esc(r.model_version ?? "?")} · ${esc(r.latency_ms)} ms · ref ${esc(r.prediction_id.slice(0, 8))}</span>
+        <button class="btn ghost small" id="btn-copy">Copy summary</button>
+      </div>
     </div>
     <div class="card"><h2>Similar past complaints</h2>${similar}</div>`;
   $("#fb-correct").onclick = () => sendFeedback(r.category, high ? "high" : "normal");
   $("#fb-send").onclick = () => sendFeedback($("#fb-category").value, $("#fb-urgent").checked ? "high" : "normal");
+  $("#btn-copy").onclick = () => copySummary(r, step);
+  validateInput();
+}
+
+async function copySummary(r, step) {
+  const text = [
+    `Team: ${r.team} (${r.category_label})`,
+    `Priority: ${r.priority === "high" ? "URGENT" : "Normal"} (urgency score ${pct(r.priority_score)})`,
+    `Confidence: ${pct(r.confidence)}`,
+    `Next step: ${step.title} - ${step.text}`,
+    `Reference: ${r.prediction_id}`,
+  ].join("\n");
+  try {
+    await navigator.clipboard.writeText(text);
+    toast("Summary copied. You can paste it into the ticket.");
+  } catch { toast("Copying is not allowed in this browser. Please select the text manually."); }
 }
 
 async function sendFeedback(correctCategory, correctPriority) {
   if (!lastPrediction) return;
+  const buttons = document.querySelectorAll("#fb-correct, #fb-send");
+  buttons.forEach((b) => { b.disabled = true; });
   try {
-    const res = await api("/api/v1/feedback", {
+    await api("/api/v1/feedback", {
       method: "POST", body: JSON.stringify({
         prediction_id: lastPrediction.prediction_id, complaint_text: lastText,
         predicted_category: lastPrediction.category, correct_category: correctCategory,
         predicted_priority: lastPrediction.priority, correct_priority: correctPriority,
       }),
     });
-    toast(res.message);
-    document.querySelectorAll("#fb-correct, #fb-send").forEach((b) => { b.disabled = true; });
-  } catch (e) { toast(`Feedback not saved: ${e.message}`); }
+    const changed = correctCategory !== lastPrediction.category || correctPriority !== lastPrediction.priority;
+    $("#feedback-block").innerHTML = `<span class="label">Was this right?</span>
+      <div class="feedback-done">✓ Thank you, ${changed ? "your correction was saved" : "we recorded that it was correct"}. It will help the next model.</div>`;
+  } catch (e) {
+    buttons.forEach((b) => { b.disabled = false; });
+    toast(`Feedback not saved: ${e.message}`);
+  }
 }
 
 // ---- pipeline ----
@@ -297,7 +384,7 @@ function renderDag(dag, latest) {
       <rect width="${W}" height="${H}" rx="10"/><text x="12" y="23">${esc(n.id)}</text><text class="sub" x="12" y="41">${esc(sub)}</text></g>`;
   }).join("");
   $("#dag").innerHTML = `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="DVC pipeline graph">
-    <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7a8b97"/></marker></defs>
+    <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#52525b"/></marker></defs>
     ${edges}${nodes}</svg>`;
   document.querySelectorAll(".dag .node").forEach((g) => {
     const open = () => showStage(g.dataset.id);
@@ -340,7 +427,7 @@ async function startRetrain() {
 
 // ---- monitoring ----
 async function loadMonitoring() {
-  const dash = `${LINKS.grafana}/d/complaint-router/financial-complaint-router?orgId=1&refresh=10s&kiosk`;
+  const dash = `${LINKS.grafana}/d/complaint-router/financial-complaint-router?orgId=1&refresh=10s&theme=dark&kiosk`;
   const frame = $("#grafana-frame");
   if (!frame.src) frame.src = dash;
   $("#grafana-open").href = dash.replace("&kiosk", "");
@@ -372,8 +459,17 @@ async function init() {
     ["API documentation (Swagger)", `${API}/docs`],
   ].map(([t, u]) => `<a class="btn ghost" href="${esc(u)}" target="_blank" rel="noopener">${esc(t)} ↗</a>`).join("");
 
+  await loadLookups();
   refreshStatus();
   setInterval(refreshStatus, 15000);
+  let start = "route";
+  try { start = localStorage.getItem("cr.view") || "route"; } catch { /* ignore */ }
+  showView(start);
+  validateInput();
+}
+
+// team list (for corrections) and example complaints
+async function loadLookups() {
   try { categories = await api("/api/v1/categories"); } catch { categories = []; }
   try {
     const ex = await api("/api/v1/examples");
@@ -381,11 +477,7 @@ async function init() {
     document.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => {
       $("#complaint").value = ex[Number(c.dataset.i)].text; validateInput(); routeComplaint();
     }));
-  } catch { $("#example-chips").innerHTML = '<span class="muted small">Examples unavailable (server offline).</span>'; }
-  let start = "route";
-  try { start = localStorage.getItem("cr.view") || "route"; } catch { /* ignore */ }
-  showView(start);
-  validateInput();
+  } catch { $("#example-chips").innerHTML = '<span class="muted small">Examples unavailable while the server is offline.</span>'; }
 }
 
 document.addEventListener("DOMContentLoaded", init);

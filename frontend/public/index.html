@@ -5,18 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Complaint Router</title>
   <meta name="description" content="Route financial customer complaints to the right team, flag urgent cases and find similar past complaints.">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230f766e'/><path d='M8 11h16M8 16h10M8 21h13' stroke='white' stroke-width='3' stroke-linecap='round'/></svg>">
+  <meta name="theme-color" content="#09090b">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%238b5cf6'/><path d='M8 11h16M8 16h10M8 21h13' stroke='white' stroke-width='3' stroke-linecap='round'/></svg>">
   <link rel="stylesheet" href="css/style.css">
   <script src="config.js"></script>
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
-      <span class="logo" aria-hidden="true"></span>
-      <div>
-        <div class="brand-name">Complaint Router</div>
-        <div class="brand-sub">Financial customer-care triage</div>
-      </div>
+      <span class="logo" aria-hidden="true">C</span>
+      <span class="brand-name">Complaint Router</span>
     </div>
     <nav class="tabs" role="tablist" aria-label="Main sections">
       <button class="tab active" role="tab" data-view="route" aria-selected="true">Route a complaint</button>
@@ -32,32 +30,42 @@
   <main>
     <!-- ============================================================ ROUTE -->
     <section class="view active" id="view-route" aria-label="Route a complaint">
+      <div class="hero">
+        <div class="label">Customer complaint triage</div>
+        <h1>Route a complaint in seconds</h1>
+        <p>Paste what the customer wrote. The system picks the right team, flags urgent cases and shows similar past complaints.</p>
+        <div class="steps-row">
+          <div class="step"><span class="n">01</span> Paste the complaint</div>
+          <div class="step"><span class="n">02</span> Click Route complaint</div>
+          <div class="step"><span class="n">03</span> Check the result and confirm</div>
+        </div>
+      </div>
+      <div id="offline-banner"></div>
       <div class="grid-2">
         <div class="card input-card">
-          <h1>Paste a customer complaint</h1>
-          <p class="muted">The system reads the complaint, sends it to the right team, checks whether it is urgent and shows similar past cases.</p>
-          <label for="complaint" class="sr-only">Complaint text</label>
+          <label for="complaint" class="label">Complaint text</label>
           <textarea id="complaint" rows="11" maxlength="10000"
             placeholder="Example: Someone opened a credit card in my name and the bank keeps charging me for purchases I never made…"></textarea>
           <div class="input-meta">
-            <span id="char-count" class="muted">0 / 10,000 characters</span>
-            <span id="input-hint" class="hint"></span>
+            <span id="char-count">0 / 10,000 characters</span>
+            <span id="input-hint" class="hint" aria-live="polite"></span>
           </div>
           <div class="actions">
-            <button id="btn-route" class="btn primary" disabled>Route complaint</button>
+            <button id="btn-route" class="btn primary" disabled>Route complaint →</button>
             <button id="btn-clear" class="btn ghost">Clear</button>
+            <span class="kbd-hint">or press Ctrl + Enter</span>
           </div>
           <div class="examples">
-            <div class="examples-title">Or try an example:</div>
+            <div class="label">No complaint at hand? Try an example</div>
             <div id="example-chips" class="chips"></div>
           </div>
         </div>
 
         <div id="result" class="result" aria-live="polite">
           <div class="card empty-state" id="empty-state">
-            <div class="empty-icon" aria-hidden="true">⇢</div>
-            <h2>Your routing decision appears here</h2>
-            <p class="muted">You will see the team, how confident the system is, whether the case is urgent, and why.</p>
+            <div class="icon" aria-hidden="true">→</div>
+            <h2>The routing decision appears here</h2>
+            <p class="muted">You will see which team should handle it, whether it is urgent, how sure the system is, and why.</p>
           </div>
         </div>
       </div>
@@ -141,21 +149,22 @@
           <li><strong>Click “Route complaint”.</strong> After about a second you will see the result.</li>
           <li><strong>Read the result:</strong>
             <ul>
-              <li><strong>Team</strong>: where the complaint should be sent.</li>
-              <li><strong>Confidence</strong>: how sure the system is. <span class="pill warn">Needs review</span> means below 50%. Please check it yourself.</li>
-              <li><strong>Priority</strong>: <span class="pill high">URGENT</span> complaints (fraud, foreclosure, threats, inability to pay…) should be handled first.</li>
-              <li><strong>Why</strong>: the words that most influenced the decision.</li>
-              <li><strong>Similar past complaints</strong>: earlier cases like this one and how the company responded.</li>
+              <li><strong>Routed to</strong>: the team that should handle the complaint.</li>
+              <li><strong>Priority</strong>: <span class="pill high">Urgent</span> complaints (fraud, foreclosure, threats, inability to pay…) should be handled first.</li>
+              <li><strong>Confidence</strong>: how sure the system is (High, Medium or Low). <span class="pill warn">Low</span> means below 50%. Please check it yourself.</li>
+              <li><strong>Next step</strong>: what to do, in one sentence: <em>Handle first</em>, <em>Check before assigning</em> or <em>Ready to assign</em>.</li>
+              <li><strong>Words that drove the decision</strong> and <strong>similar past complaints</strong> explain why.</li>
             </ul>
           </li>
-          <li><strong>Tell us if it was right.</strong> Click <em>Correct</em>, or choose the right team and click <em>Send correction</em>. Corrections are stored encrypted and used to retrain the model.</li>
+          <li><strong>Tell us if it was right.</strong> Click <em>Yes, correct</em>, or choose the right team and click <em>Send correction</em>. Corrections are stored encrypted and used to retrain the model.</li>
         </ol>
         <h2>Troubleshooting</h2>
         <table>
           <tr><th>You see</th><th>What to do</th></tr>
           <tr><td>Red dot “Model offline”</td><td>The model is starting or has not been trained yet. Wait a minute. An administrator can run <code>make train</code>.</td></tr>
           <tr><td>“Please write a bit more”</td><td>The text is too short to judge. Add more detail about the problem.</td></tr>
-          <tr><td>“Needs review” badge</td><td>The system is unsure. Read the complaint and pick the team yourself, then send the correction.</td></tr>
+          <tr><td>Confidence “Low, needs review”</td><td>The system is unsure. Read the complaint and pick the team yourself, then send the correction.</td></tr>
+          <tr><td>“The text was changed”</td><td>You edited the complaint after routing. Click Route complaint again.</td></tr>
         </table>
         <h2>For administrators</h2>
         <p>The <em>Pipeline console</em> shows each pipeline stage, its runs and failures, and the model versions. <em>Retrain now</em> needs the admin token from the <code>.env</code> file. The <em>Monitoring</em> tab shows latency, prediction mix and data drift. When drift lasts more than a minute, retraining starts automatically.</p>
