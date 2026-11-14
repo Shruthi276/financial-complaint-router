@@ -349,33 +349,78 @@ function renderRuns() {
 
 function renderDag(dag, latest) {
   if (!dag.nodes.length) { $("#dag").innerHTML = '<p class="muted">dvc.yaml not found.</p>'; return; }
-  // Layer = longest path from a source node.
-  const layer = {};
   const preds = (id) => dag.edges.filter((e) => e.target === id).map((e) => e.source);
-  const depth = (id, seen = new Set()) => {
-    if (layer[id] != null) return layer[id];
+  const succs = (id) => dag.edges.filter((e) => e.source === id).map((e) => e.target);
+
+  // depth = longest path from a starting node
+  const depth = {};
+  const getDepth = (id, seen = new Set()) => {
+    if (depth[id] != null) return depth[id];
     if (seen.has(id)) return 0;
     seen.add(id);
     const p = preds(id);
-    return (layer[id] = p.length ? 1 + Math.max(...p.map((x) => depth(x, seen))) : 0);
+    return (depth[id] = p.length ? 1 + Math.max(...p.map((x) => getDepth(x, seen))) : 0);
   };
-  dag.nodes.forEach((n) => depth(n.id));
-  const cols = {};
-  dag.nodes.forEach((n) => { (cols[layer[n.id]] = cols[layer[n.id]] || []).push(n.id); });
-  const W = 132, H = 54, GX = 34, GY = 26;
+  dag.nodes.forEach((n) => getDepth(n.id));
+
+  // main chain = the longest path; it goes on the top row
+  const ids = dag.nodes.map((n) => n.id);
+  let cur = ids.reduce((a, b) => (depth[b] > depth[a] ? b : a));
+  const chain = new Set([cur]);
+  while (preds(cur).length) {
+    cur = preds(cur).reduce((a, b) => (depth[b] > depth[a] ? b : a));
+    chain.add(cur);
+  }
+
+  // other nodes sit one column before the stage they feed, on the rows below
+  const col = {}, row = {}, used = {};
+  ids.forEach((id) => { if (chain.has(id)) { col[id] = depth[id]; row[id] = 0; } });
+  ids.filter((id) => !chain.has(id)).forEach((id) => {
+    const next = succs(id).filter((t) => col[t] != null);
+    col[id] = next.length ? Math.max(0, Math.min(...next.map((t) => col[t])) - 1) : depth[id];
+    used[col[id]] = (used[col[id]] || 0) + 1;
+    row[id] = used[col[id]];
+  });
+
+  const W = 132, H = 54, GX = 34, GY = 34, TOP = 40, PAD = 10;
   const pos = {};
-  const maxRows = Math.max(...Object.values(cols).map((c) => c.length));
-  Object.entries(cols).forEach(([l, ids]) => ids.forEach((id, i) => {
-    const offset = (maxRows - ids.length) * (H + GY) / 2;
-    pos[id] = { x: 10 + Number(l) * (W + GX), y: 10 + offset + i * (H + GY) };
-  }));
-  const width = 20 + (Object.keys(cols).length) * (W + GX);
-  const height = 20 + maxRows * (H + GY);
+  ids.forEach((id) => { pos[id] = { x: PAD + col[id] * (W + GX), y: TOP + row[id] * (H + GY) }; });
+  const width = PAD * 2 + (Math.max(...Object.values(col)) + 1) * (W + GX) - GX;
+  const height = TOP + (Math.max(...Object.values(row)) + 1) * (H + GY);
+
+  // Edges that skip a stage are drawn as arcs over the row. If an arc would
+  // cross another arc, draw it under the row instead (when nothing is there).
+  const skips = dag.edges.filter((e) => row[e.source] === row[e.target] && col[e.target] - col[e.source] > 1)
+    .sort((p, q) => col[p.source] - col[q.source]);
+  const above = [], below = new Set();
+  skips.forEach((e) => {
+    const c1 = col[e.source], c2 = col[e.target];
+    const crosses = above.some(([a1, a2]) => c1 > a1 && c1 < a2 && c2 > a2);
+    const freeBelow = !ids.some((id) => row[id] > 0 && col[id] >= c1 && col[id] <= c2);
+    if (crosses && freeBelow) below.add(e); else above.push([c1, c2]);
+  });
+
   const edges = dag.edges.map((e) => {
     const a = pos[e.source], b = pos[e.target];
-    const x1 = a.x + W, y1 = a.y + H / 2, x2 = b.x - 4, y2 = b.y + H / 2, mx = (x1 + x2) / 2;
-    return `<path class="edge" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}"/>`;
+    const span = col[e.target] - col[e.source];
+    let d;
+    if (row[e.source] === row[e.target] && span === 1) {
+      // neighbours: straight line
+      d = `M${a.x + W},${a.y + H / 2} L${b.x - 4},${b.y + H / 2}`;
+    } else if (row[e.source] === row[e.target]) {
+      // skips a stage: arc over (or under) the boxes in between
+      const x1 = a.x + W * 0.7, x2 = b.x + W * 0.3, lift = 26 + 10 * (span - 2);
+      d = below.has(e)
+        ? `M${x1},${a.y + H} C${x1},${a.y + H + lift} ${x2},${b.y + H + lift} ${x2},${b.y + H + 4}`
+        : `M${x1},${a.y} C${x1},${a.y - lift} ${x2},${b.y - lift} ${x2},${b.y - 4}`;
+    } else {
+      // from a lower row: come up into the bottom of the target
+      const x2 = b.x + W / 2;
+      d = `M${a.x + W},${a.y + H / 2} C${x2},${a.y + H / 2} ${x2},${a.y + H / 2} ${x2},${b.y + H + 4}`;
+    }
+    return `<path class="edge" d="${d}"/>`;
   }).join("");
+
   const nodes = dag.nodes.map((n) => {
     const r = latest[n.id];
     const st = r ? r.status : "";
@@ -384,7 +429,7 @@ function renderDag(dag, latest) {
       <rect width="${W}" height="${H}" rx="10"/><text x="12" y="23">${esc(n.id)}</text><text class="sub" x="12" y="41">${esc(sub)}</text></g>`;
   }).join("");
   $("#dag").innerHTML = `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="DVC pipeline graph">
-    <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#52525b"/></marker></defs>
+    <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#71717a"/></marker></defs>
     ${edges}${nodes}</svg>`;
   document.querySelectorAll(".dag .node").forEach((g) => {
     const open = () => showStage(g.dataset.id);

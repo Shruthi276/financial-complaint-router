@@ -50,10 +50,7 @@ code { font-family: var(--mono); font-size: .85em; background: var(--surface-2);
   border-bottom: 1px solid var(--line);
 }
 .brand { display: flex; gap: 10px; align-items: center; white-space: nowrap; }
-.logo {
-  width: 30px; height: 30px; border-radius: 8px; background: var(--accent); display: grid; place-items: center;
-  font: 800 15px var(--mono); color: var(--accent-ink);
-}
+.logo { width: 30px; height: 30px; display: block; }
 .brand-name { font: 700 .92rem var(--mono); letter-spacing: .04em; text-transform: uppercase; }
 .tabs { display: flex; gap: 2px; flex: 1; overflow-x: auto; scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }
