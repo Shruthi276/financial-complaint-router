@@ -1,0 +1,24 @@
+{
+  "engine": "ray",
+  "num_cpus": 2,
+  "rows_in": 165815,
+  "rows_after_cleaning": 164090,
+  "duplicates_removed": 19669,
+  "feedback_rows": 0,
+  "rows_out": 144421,
+  "transform_seconds": 34.2,
+  "throughput_rows_per_sec": 4849.0,
+  "category_counts": {
+    "credit_reporting": 63864,
+    "debt_collection": 21867,
+    "credit_card": 16326,
+    "bank_account": 11922,
+    "mortgage": 11900,
+    "student_loan": 7558,
+    "money_transfer": 4510,
+    "vehicle_consumer_loan": 4376,
+    "payday_personal_loan": 2098
+  },
+  "priority_rate": 0.111,
+  "mean_chars": 970.2
+}

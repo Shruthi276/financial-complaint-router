@@ -1,0 +1,10 @@
+{
+  "mlflow_run_id": "3ea6eee4e6b24690997f44314358594c",
+  "model_type": "logreg",
+  "val_accuracy": 0.8185,
+  "val_macro_f1": 0.8027,
+  "val_priority_recall": 0.7054,
+  "val_priority_precision": 0.4551,
+  "priority_threshold": 0.44,
+  "train_seconds": 27.6793
+}

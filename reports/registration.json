@@ -1,0 +1,12 @@
+{
+  "model_name": "complaint-router",
+  "candidate_version": "1",
+  "mlflow_run_id": "3ea6eee4e6b24690997f44314358594c",
+  "promoted": true,
+  "previous_champion": null,
+  "previous_champion_macro_f1": null,
+  "candidate_macro_f1": 0.7872,
+  "reasons": [
+    "passed acceptance gate"
+  ]
+}

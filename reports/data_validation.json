@@ -1,0 +1,45 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "check": "schema",
+      "passed": true,
+      "detail": "all columns present"
+    },
+    {
+      "check": "min_rows",
+      "passed": true,
+      "detail": "144421 rows (min 1000)"
+    },
+    {
+      "check": "nulls",
+      "passed": true,
+      "detail": "max null fraction 0.0000"
+    },
+    {
+      "check": "label_domain",
+      "passed": true,
+      "detail": "all labels known"
+    },
+    {
+      "check": "priority_binary",
+      "passed": true,
+      "detail": "priority in {0,1}"
+    },
+    {
+      "check": "min_classes",
+      "passed": true,
+      "detail": "9 classes (min 5)"
+    },
+    {
+      "check": "class_support",
+      "passed": true,
+      "detail": "classes below 100 rows (dropped later): {}"
+    },
+    {
+      "check": "empty_text",
+      "passed": true,
+      "detail": "no empty texts"
+    }
+  ]
+}

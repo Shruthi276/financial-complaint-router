@@ -12,7 +12,7 @@ PYTHON_VERSION := 3.11
 UV := $(shell command -v uv 2>/dev/null || echo $(HOME)/.local/bin/uv)
 
 .DEFAULT_GOAL := help
-.PHONY: help env setup venv build up down restart logs ps train train-sample repro dag metrics \
+.PHONY: help env setup venv lock build up down restart logs ps train train-sample repro dag metrics \
         test test-unit test-integration test-e2e lint report ci smoke drift rollback clean
 
 help: ## Show this help
@@ -28,7 +28,15 @@ venv: ## Create .venv (Python 3.11 via uv) for tests, lint and dvc on the host
 	@[ -x "$(UV)" ] || curl -LsSf https://astral.sh/uv/install.sh | sh
 	rm -rf $(VENV)
 	$(UV) venv --python $(PYTHON_VERSION) $(VENV)
-	$(UV) pip install --python $(PY) -r requirements/dev.txt -e .
+	$(UV) pip install --python $(PY) -r requirements/dev.lock.txt -e .
+
+lock: ## Re-pin all transitive dependencies (requirements/*.lock.txt) after editing requirements/*.txt
+	@[ -x "$(UV)" ] || curl -LsSf https://astral.sh/uv/install.sh | sh
+	for f in ml backend dev; do \
+	  $(UV) pip compile requirements/$$f.txt --python-version $(PYTHON_VERSION) \
+	    --python-platform x86_64-unknown-linux-gnu --exclude-newer 2025-03-01 --no-header \
+	    -o requirements/$$f.lock.txt; \
+	done
 
 build: env ## Build all docker images
 	$(COMPOSE) build

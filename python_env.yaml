@@ -2,5 +2,5 @@ python: "3.11"
 build_dependencies:
   - pip
 dependencies:
-  - -r requirements/ml.txt
+  - -r requirements/ml.lock.txt
   - -e .

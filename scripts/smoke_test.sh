@@ -23,6 +23,6 @@ check grafana      http://localhost:3000/api/health
 echo -e "\nSample prediction:"
 curl -fsS -m 20 -X POST http://localhost:8000/api/v1/predict -H 'Content-Type: application/json' \
   -d '{"text":"A debt collector keeps calling me about a debt I already paid and threatened to sue me."}' \
-  | python3 -c 'import json,sys;d=json.load(sys.stdin);print(f"  -> {d[\"team\"]} | confidence {d[\"confidence\"]:.2f} | priority {d[\"priority\"]}")' \
+  | python3 -c 'import json,sys;d=json.load(sys.stdin);print("  ->", d["team"], "| confidence", format(d["confidence"], ".2f"), "| priority", d["priority"])' \
   || { echo "  prediction failed (is a model trained? run: make train)"; fail=1; }
 exit $fail

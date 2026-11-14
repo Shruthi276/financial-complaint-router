@@ -1,0 +1,19 @@
+{
+  "rows_available": 144421,
+  "rows_sampled": 46984,
+  "train": 32888,
+  "val": 7048,
+  "test": 7048,
+  "class_counts_train": {
+    "bank_account": 4200,
+    "credit_card": 4200,
+    "credit_reporting": 4200,
+    "mortgage": 4200,
+    "student_loan": 4200,
+    "debt_collection": 4200,
+    "money_transfer": 3157,
+    "vehicle_consumer_loan": 3063,
+    "payday_personal_loan": 1468
+  },
+  "priority_rate_train": 0.1785
+}

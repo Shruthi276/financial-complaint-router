@@ -4,8 +4,8 @@ FROM python:3.11-slim
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PIP_NO_CACHE_DIR=1 \
     PYTHONPATH=/opt/app/src:/opt/app/backend HOME=/tmp
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
-COPY requirements/backend.txt /tmp/requirements-backend.txt
-RUN pip install -r /tmp/requirements-backend.txt
+COPY requirements/backend.lock.txt /tmp/requirements-backend.lock.txt
+RUN --mount=type=cache,target=/root/.cache/pip PIP_NO_CACHE_DIR=0 pip install --retries 10 --timeout 120 -r /tmp/requirements-backend.lock.txt
 WORKDIR /opt/app
 COPY src/complaint_router ./src/complaint_router
 COPY backend/app ./backend/app

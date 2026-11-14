@@ -1,0 +1,285 @@
+schema: '2.0'
+stages:
+  ci_tests:
+    cmd: python -m pytest tests/unit -q --junitxml=reports/ci/unit_tests.xml
+    deps:
+    - path: src/complaint_router
+      hash: md5
+      md5: 65e3e9c8b8e538b301d1ca4be4667e7b.dir
+      size: 75115
+      nfiles: 21
+    - path: tests/unit
+      hash: md5
+      md5: 391a804113d819e33f648bcf3e325f97.dir
+      size: 12772
+      nfiles: 5
+    outs:
+    - path: reports/ci/unit_tests.xml
+      hash: md5
+      md5: 1c443dab407becd556a31dce1e0839a1
+      size: 4779
+  ingest:
+    cmd: python -m complaint_router.pipeline.ingest
+    deps:
+    - path: src/complaint_router/pipeline/ingest.py
+      hash: md5
+      md5: 1c373f1879e11ec1bb8031fa9109eada
+      size: 5048
+      isexec: true
+    params:
+      params.yaml:
+        ingest:
+          source: hf_mirror
+          hf_base_url: 
+            https://huggingface.co/datasets/davidheineman/consumer-finance-complaints-large/resolve/main/data
+          hf_shard_template: train-{shard:05d}-of-00011.parquet
+          shards:
+          - 10
+          local_path: data/external/complaints.parquet
+          sample_path: data/sample/sample_complaints.csv
+          download_cache: .cache/downloads
+          timeout_seconds: 600
+    outs:
+    - path: data/raw/complaints.parquet
+      hash: md5
+      md5: 14ae0a901cc9f298d359265a1e39d808
+      size: 58974495
+    - path: reports/ingest.json
+      hash: md5
+      md5: a6536654e06721191b2be3bc3010f662
+      size: 108
+  preprocess:
+    cmd: python -m complaint_router.pipeline.preprocess
+    deps:
+    - path: data/feedback
+      hash: md5
+      md5: 6ffbaaad7b4ac6e1afabed19a80b2560.dir
+      size: 0
+      nfiles: 1
+    - path: data/raw/complaints.parquet
+      hash: md5
+      md5: 14ae0a901cc9f298d359265a1e39d808
+      size: 58974495
+    - path: src/complaint_router/categories.py
+      hash: md5
+      md5: 7725756902d4540bf9d012475df70ea4
+      size: 5923
+      isexec: true
+    - path: src/complaint_router/feedback.py
+      hash: md5
+      md5: b416ffd3e0d559172bdf0f12ee603467
+      size: 3113
+      isexec: true
+    - path: src/complaint_router/pipeline/preprocess.py
+      hash: md5
+      md5: f0662e5b1aaed30e331c54a4f6c14609
+      size: 4225
+      isexec: true
+    - path: src/complaint_router/text_cleaning.py
+      hash: md5
+      md5: 6bfd570a63f3adf5809aeee105df3b2d
+      size: 3463
+      isexec: true
+    params:
+      params.yaml:
+        preprocess:
+          engine: ray
+          num_cpus: 2
+          batch_size: 4096
+          min_chars: 50
+          max_chars: 6000
+    outs:
+    - path: data/processed/complaints_clean.parquet
+      hash: md5
+      md5: 96b5c7615ab6e18a37235830575c547f
+      size: 72959885
+    - path: reports/preprocess.json
+      hash: md5
+      md5: f56015f03cbb5a3cefecad4b378a22bd
+      size: 569
+  validate:
+    cmd: python -m complaint_router.pipeline.validate
+    deps:
+    - path: data/processed/complaints_clean.parquet
+      hash: md5
+      md5: 96b5c7615ab6e18a37235830575c547f
+      size: 72959885
+    - path: src/complaint_router/pipeline/validate.py
+      hash: md5
+      md5: b7805124f85a0ff91566f9b6cee745fc
+      size: 3221
+      isexec: true
+    params:
+      params.yaml:
+        validate:
+          min_rows: 1000
+          max_null_fraction: 0.0
+          min_classes: 5
+          min_rows_per_class: 100
+    outs:
+    - path: reports/data_validation.json
+      hash: md5
+      md5: 54dd9983de4f6c98dbdbce9d2657889f
+      size: 873
+  split:
+    cmd: python -m complaint_router.pipeline.split
+    deps:
+    - path: data/processed/complaints_clean.parquet
+      hash: md5
+      md5: 96b5c7615ab6e18a37235830575c547f
+      size: 72959885
+    - path: reports/data_validation.json
+      hash: md5
+      md5: 54dd9983de4f6c98dbdbce9d2657889f
+      size: 873
+    - path: src/complaint_router/pipeline/split.py
+      hash: md5
+      md5: 90cfc32c811fd26db777a46a480dd08d
+      size: 2748
+      isexec: true
+    params:
+      params.yaml:
+        split:
+          seed: 42
+          max_per_class: 6000
+          test_size: 0.15
+          val_size: 0.15
+        validate.min_rows_per_class: 100
+    outs:
+    - path: data/splits
+      hash: md5
+      md5: a9cced9fc95adc7edb8331074cbfeaa4.dir
+      size: 27954344
+      nfiles: 3
+    - path: reports/split.json
+      hash: md5
+      md5: 1439742290aae5d94616c2bc2f06e448
+      size: 422
+  train:
+    cmd: python -m complaint_router.pipeline.train
+    deps:
+    - path: data/splits
+      hash: md5
+      md5: a9cced9fc95adc7edb8331074cbfeaa4.dir
+      size: 27954344
+      nfiles: 3
+    - path: reports/ci/unit_tests.xml
+      hash: md5
+      md5: 1c443dab407becd556a31dce1e0839a1
+      size: 4779
+    - path: src/complaint_router/model
+      hash: md5
+      md5: 7bcb0547f47fcbaad960b8cdbc76df87.dir
+      size: 17778
+      nfiles: 3
+    - path: src/complaint_router/pipeline/train.py
+      hash: md5
+      md5: ec4fcba87804b7540cd5b83f54a71bb4
+      size: 6790
+      isexec: true
+    params:
+      params.yaml:
+        evaluate:
+          low_confidence_threshold: 0.5
+        mlflow:
+          experiment_name: financial-complaint-router
+        train:
+          model_type: logreg
+          max_features: 50000
+          ngram_max: 2
+          min_df: 3
+          C: 4.0
+          alpha: 0.0001
+          max_iter: 1000
+          priority_C: 2.0
+          priority_target_recall: 0.7
+          similar_index_size: 15000
+          seed: 42
+    outs:
+    - path: models/router.joblib
+      hash: md5
+      md5: 98a1f6ec827843bd525da8097769f640
+      size: 24362197
+    - path: reports/train_run.json
+      hash: md5
+      md5: 4f13188ddd82eaa5000399d89b1e6239
+      size: 262
+  evaluate:
+    cmd: python -m complaint_router.pipeline.evaluate
+    deps:
+    - path: data/splits/test.parquet
+      hash: md5
+      md5: 98b50e871154f6b68430d62218793d85
+      size: 4230323
+    - path: models/router.joblib
+      hash: md5
+      md5: 98a1f6ec827843bd525da8097769f640
+      size: 24362197
+    - path: reports/train_run.json
+      hash: md5
+      md5: 4f13188ddd82eaa5000399d89b1e6239
+      size: 262
+    - path: src/complaint_router/monitoring/drift.py
+      hash: md5
+      md5: 3d8022fd14756b410d341a68bda8391d
+      size: 3366
+      isexec: true
+    - path: src/complaint_router/pipeline/evaluate.py
+      hash: md5
+      md5: 93a9a50fba6751767ace3a00d840e481
+      size: 7133
+      isexec: true
+    params:
+      params.yaml:
+        evaluate:
+          low_confidence_threshold: 0.5
+    outs:
+    - path: reports/confusion_matrix.csv
+      hash: md5
+      md5: 35690986a00a1629ffb6391cf2fc74a1
+      size: 205621
+    - path: reports/confusion_matrix.png
+      hash: md5
+      md5: bc5cda3001a15e0f6fc5c9b3340c1386
+      size: 122224
+    - path: reports/metrics.json
+      hash: md5
+      md5: d7beacefd91b0805f375041f3b421668
+      size: 515
+    - path: reports/per_class_metrics.json
+      hash: md5
+      md5: 9f02de42638cc51fe58f42b4f901e06d
+      size: 1072
+    - path: reports/reference_stats.json
+      hash: md5
+      md5: a8d4ea65ce7276f9a8db578f4b4a81b3
+      size: 894
+  register:
+    cmd: python -m complaint_router.pipeline.register
+    deps:
+    - path: reports/metrics.json
+      hash: md5
+      md5: d7beacefd91b0805f375041f3b421668
+      size: 515
+    - path: reports/train_run.json
+      hash: md5
+      md5: 4f13188ddd82eaa5000399d89b1e6239
+      size: 262
+    - path: src/complaint_router/pipeline/register.py
+      hash: md5
+      md5: decc8e655fc4e1dc0559671d490c816b
+      size: 4405
+      isexec: true
+    params:
+      params.yaml:
+        register:
+          model_name: complaint-router
+          min_macro_f1: 0.7
+          min_priority_recall: 0.65
+          max_priority_flag_rate: 0.35
+          max_regression: 0.005
+    outs:
+    - path: reports/registration.json
+      hash: md5
+      md5: 5ce148a4a9b9a65adddf7e18f0f58252
+      size: 289

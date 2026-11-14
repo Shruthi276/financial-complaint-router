@@ -117,7 +117,7 @@ def main() -> None:
                 artifacts={"router": str(MODEL_PATH)},
                 code_paths=[PACKAGE_DIR],
                 signature=SIGNATURE, input_example=example,
-                pip_requirements=str(project_path("requirements", "ml.txt")),
+                pip_requirements=str(project_path("requirements", "ml.lock.txt")),
             )
             run_id = mlrun.info.run_id
 
