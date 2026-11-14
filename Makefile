@@ -12,7 +12,7 @@ PYTHON_VERSION := 3.11
 UV := $(shell command -v uv 2>/dev/null || echo $(HOME)/.local/bin/uv)
 
 .DEFAULT_GOAL := help
-.PHONY: help env setup venv lock build compare docs-pdf up down restart logs ps train train-sample repro dag metrics \
+.PHONY: help env setup venv lock build compare up down restart logs ps train train-sample repro dag metrics \
         test test-unit test-integration test-e2e lint report ci smoke drift rollback clean
 
 help: ## Show this help
@@ -75,13 +75,10 @@ train-sample: ## Fast pipeline on the bundled sample (no download, ~1 min)
 	  -S split.max_per_class=250 -S train.similar_index_size=1000 -S register.min_macro_f1=0.4 -S register.min_priority_recall=0.4 -S register.max_priority_flag_rate=1.0
 	git checkout -- params.yaml   # the experiment is recorded by DVC + MLflow; restore the real-data params
 
-compare: ## Train all 3 model types (sgd, cnb, logreg) on the current data and print a comparison
+compare: ## Train all 3 model types (logreg, cnb, sgd) on the current data and print a comparison
 	$(COMPOSE) up -d mlflow
-	for m in sgd cnb logreg; do $(RUN_ML) dvc exp run -n cmp-$$m -S train.model_type=$$m || exit 1; done
+	for m in logreg cnb sgd; do $(RUN_ML) dvc exp run -S train.model_type=$$m || exit 1; done
 	$(RUN_ML) dvc exp show --no-pager --md --drop '.*' --keep 'Experiment|model_type|test_macro_f1|test_accuracy|test_priority_recall'
-
-docs-pdf: ## Combine the project documents in docs/ into docs/Project_Documentation.pdf
-	python3 scripts/build_docs_pdf.py
 
 repro: ## Same as train but on the host venv (needs MLflow at localhost:5000)
 	MLFLOW_TRACKING_URI=http://localhost:5000 $(VENV)/bin/dvc repro

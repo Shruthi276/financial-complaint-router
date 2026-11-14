@@ -240,7 +240,6 @@ A **git pre-push hook** runs the quick CI (lint, unit tests, DVC status) before 
 | `make drift` | drift and retraining demo |
 | `make rollback VERSION=n` | serve an older model version |
 | `make test` / `make ci` | tests / full local CI |
-| `make docs-pdf` | build `docs/Project_Documentation.pdf` |
 | `make help` | list all commands |
 
 ## 12. Troubleshooting
@@ -258,7 +257,7 @@ A **git pre-push hook** runs the quick CI (lint, unit tests, DVC status) before 
 
 ## 13. Documentation
 
-All required documents are in [docs/](docs/), and also combined into one PDF: **[docs/Project_Documentation.pdf](docs/Project_Documentation.pdf)** (rebuild with `make docs-pdf`).
+All required documents are in [docs/](docs/):
 
 | Document | File |
 |---|---|
