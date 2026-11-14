@@ -178,7 +178,7 @@ select:focus, input:focus { outline: none; border-color: var(--accent); box-shad
 .check { display: inline-flex; gap: 6px; align-items: center; font-size: .86rem; color: var(--ink-2); }
 .check input { accent-color: var(--accent); }
 
-.pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font: 600 .7rem var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+.pill { display: inline-block; white-space: nowrap; padding: 2px 9px; border-radius: 999px; font: 600 .7rem var(--mono); letter-spacing: .04em; text-transform: uppercase; }
 .pill.high { background: var(--high-soft); color: var(--high); }
 .pill.normal { background: var(--ok-soft); color: var(--ok); }
 .pill.warn { background: var(--warn-soft); color: var(--warn); }
@@ -225,6 +225,9 @@ td.err { color: var(--high); max-width: 340px; }
 
 /* ---------- help page */
 .prose { max-width: 860px; }
+.prose h2 { margin-top: 30px; }
+.prose p, .prose li { color: var(--ink-2); }
+.prose table { margin: 6px 0 4px; }
 .prose li { margin: 8px 0; color: var(--ink-2); }
 .prose ol.steps { padding-left: 22px; }
 .prose ol.steps > li::marker { font-family: var(--mono); color: var(--accent-2); }

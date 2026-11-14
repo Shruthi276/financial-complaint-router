@@ -143,32 +143,90 @@
     <!-- ============================================================= HELP -->
     <section class="view" id="view-help" aria-label="Help">
       <div class="card prose">
+        <div class="label">User manual</div>
         <h1>How to use the Complaint Router</h1>
+        <p>This guide is for customer-care agents and team leads. No technical knowledge is needed.</p>
+
+        <h2>1. What the Complaint Router does</h2>
+        <p>You paste a customer's complaint. In about one second the Complaint Router tells you:</p>
+        <ul>
+          <li><strong>which team</strong> should handle it (for example <em>Mortgage Servicing Team</em>),</li>
+          <li><strong>how sure</strong> it is (confidence),</li>
+          <li>whether the complaint is <strong>urgent</strong> and why,</li>
+          <li><strong>which words</strong> led to the decision,</li>
+          <li><strong>similar complaints</strong> from the past and how they were resolved.</li>
+        </ul>
+        <p>It is an assistant. You always have the final say.</p>
+
+        <h2>2. The status light</h2>
+        <p>At the top right of every page:</p>
+        <div class="table-wrap"><table>
+          <tr><th>Light</th><th>Meaning</th></tr>
+          <tr><td><span class="pill normal">Model online</span></td><td>Everything works.</td></tr>
+          <tr><td><span class="pill high">Model offline</span></td><td>The system is starting or being updated. A red message explains this and the <em>Route complaint</em> button is paused. Wait a minute.</td></tr>
+          <tr><td><span class="pill high">Server unreachable</span></td><td>The application is not running. Contact your administrator.</td></tr>
+        </table></div>
+
+        <h2>3. Routing a complaint, step by step</h2>
         <ol class="steps">
-          <li><strong>Paste the complaint.</strong> Copy the customer's message into the big box on the <em>Route a complaint</em> tab. It must be at least 20 characters. Or click one of the examples.</li>
-          <li><strong>Click “Route complaint”.</strong> After about a second you will see the result.</li>
-          <li><strong>Read the result:</strong>
-            <ul>
-              <li><strong>Routed to</strong>: the team that should handle the complaint.</li>
-              <li><strong>Priority</strong>: <span class="pill high">Urgent</span> complaints (fraud, foreclosure, threats, inability to pay…) should be handled first.</li>
-              <li><strong>Confidence</strong>: how sure the system is (High, Medium or Low). <span class="pill warn">Low</span> means below 50%. Please check it yourself.</li>
-              <li><strong>Next step</strong>: what to do, in one sentence: <em>Handle first</em>, <em>Check before assigning</em> or <em>Ready to assign</em>.</li>
-              <li><strong>Words that drove the decision</strong> and <strong>similar past complaints</strong> explain why.</li>
-            </ul>
-          </li>
-          <li><strong>Tell us if it was right.</strong> Click <em>Yes, correct</em>, or choose the right team and click <em>Send correction</em>. Corrections are stored encrypted and used to retrain the model.</li>
+          <li>Click the <strong>Route a complaint</strong> tab (it opens by default).</li>
+          <li><strong>Paste</strong> the complaint text into the large box. Write at least 20 characters; the message under the box tells you how many more are needed. <em>Tip:</em> to see how it works, click one of the <strong>example</strong> buttons under the box.</li>
+          <li>Click <strong>Route complaint</strong> (or press <strong>Ctrl + Enter</strong>).</li>
+          <li>Read the result on the right (on a phone, it appears below the box).</li>
         </ol>
-        <h2>Troubleshooting</h2>
-        <table>
-          <tr><th>You see</th><th>What to do</th></tr>
-          <tr><td>Red dot “Model offline”</td><td>The model is starting or has not been trained yet. Wait a minute. An administrator can run <code>make train</code>.</td></tr>
-          <tr><td>“Please write a bit more”</td><td>The text is too short to judge. Add more detail about the problem.</td></tr>
-          <tr><td>Confidence “Low, needs review”</td><td>The system is unsure. Read the complaint and pick the team yourself, then send the correction.</td></tr>
-          <tr><td>“The text was changed”</td><td>You edited the complaint after routing. Click Route complaint again.</td></tr>
-        </table>
-        <h2>For administrators</h2>
-        <p>The <em>Pipeline console</em> shows each pipeline stage, its runs and failures, and the model versions. <em>Retrain now</em> needs the admin token from the <code>.env</code> file. The <em>Monitoring</em> tab shows latency, prediction mix and data drift. When drift lasts more than a minute, retraining starts automatically.</p>
-        <p>The full manual is in <code>docs/user_manual.md</code>.</p>
+
+        <h2>4. Understanding the result</h2>
+        <p>The top of the result has three boxes:</p>
+        <ul>
+          <li><strong>Routed to</strong>: the team that should receive the complaint, with its category.</li>
+          <li><strong>Priority</strong>: <span class="pill high">Urgent</span> means handle it first. Typical reasons: fraud, a home or car about to be taken away, wage garnishment, threats from a collector, or a customer who cannot pay. <span class="pill normal">Normal</span> means handle it in the usual order.</li>
+          <li><strong>Confidence</strong>: how sure the system is, from 0% to 100%, also shown in words. <strong>High</strong> (80% or more) or <strong>Medium</strong> (50-79%): you can usually follow the suggestion. <span class="pill warn">Low</span> (below 50%): read the complaint yourself and choose the team (see section 5).</li>
+        </ul>
+        <p>The coloured <strong>Next step</strong> box under them tells you what to do in one sentence:</p>
+        <ul>
+          <li><span class="pill high">Handle first</span> urgent; send it to the team today and escalate it to a team lead.</li>
+          <li><span class="pill warn">Check before assigning</span> the system is unsure; check the team yourself.</li>
+          <li><span class="pill normal">Ready to assign</span> send it to the team in the normal queue.</li>
+        </ul>
+        <p>Further down:</p>
+        <ul>
+          <li><strong>Why this priority</strong>: the reasons in plain words. <em>"Severe situation, always escalated: foreclosure"</em> means the complaint mentions a situation the bank must always treat as urgent.</li>
+          <li><strong>Words that drove the decision</strong>: the words that most influenced the team choice. If they look unrelated to the complaint, double-check the result.</li>
+          <li><strong>Other possible categories</strong>: the second and third choices with their likelihood. Useful when confidence is low.</li>
+          <li><strong>Similar past complaints</strong>: earlier cases that read alike, with their category and outcome (for example <em>Closed with monetary relief</em>).</li>
+          <li><strong>Copy summary</strong> (bottom right) copies the team, priority, confidence and next step so you can paste them into your ticket system.</li>
+        </ul>
+        <p>If you change the complaint text after routing, the result fades and says <em>"The text was changed"</em>. Click <strong>Route complaint</strong> again to get an up-to-date result.</p>
+
+        <h2>5. Telling the system whether it was right</h2>
+        <ul>
+          <li>Click <strong>Yes, correct</strong> if the result was right.</li>
+          <li>Otherwise choose the correct team in the list, tick <strong>Urgent</strong> if needed, and click <strong>Send correction</strong>.</li>
+        </ul>
+        <p>A green "Thank you" message replaces the buttons, so feedback cannot be sent twice by mistake. Your corrections are stored <strong>encrypted</strong> and teach the system over time.</p>
+
+        <h2>6. Common messages</h2>
+        <div class="table-wrap"><table>
+          <tr><th>Message</th><th>What to do</th></tr>
+          <tr><td>"Please write a bit more (N more characters)."</td><td>Add more detail about the problem.</td></tr>
+          <tr><td>"The text was changed. Click Route complaint again…"</td><td>You edited the complaint after routing. Route it again.</td></tr>
+          <tr><td>"The text should describe the problem in words."</td><td>The box contains mostly numbers or symbols. Paste the actual complaint text.</td></tr>
+          <tr><td>"The routing model is not available right now…"</td><td>Wait a minute and try again. If it persists, tell your administrator.</td></tr>
+          <tr><td>"The server took too long to answer."</td><td>Try again; the system may be busy retraining.</td></tr>
+        </table></div>
+
+        <h2>7. Other tabs (for team leads and administrators)</h2>
+        <ul>
+          <li><strong>Pipeline console</strong>: the "factory" that builds the model: each step, when it last ran, whether it succeeded and how fast it was. It also lists model versions (the one marked <span class="pill accent">@champion</span> is live) and retraining runs. <strong>Retrain now…</strong> asks for the admin token.</li>
+          <li><strong>Monitoring</strong>: live charts of the number of complaints, response speed, mix of categories, share of urgent complaints and <strong>data drift</strong> (whether today's complaints look different from what the model learned). When drift persists, the system retrains itself automatically.</li>
+        </ul>
+
+        <h2>8. Privacy</h2>
+        <ul>
+          <li>Complaint text is never written to the system logs.</li>
+          <li>Corrections are encrypted before they are saved.</li>
+          <li>Do not paste passwords or full card numbers. The system masks long numbers, e-mails and phone numbers, but it is better not to include them.</li>
+        </ul>
       </div>
     </section>
   </main>

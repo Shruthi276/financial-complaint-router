@@ -88,7 +88,7 @@ A green "*Thank you…*" message replaces the buttons, so feedback cannot be sen
 
 * **Pipeline console** - the "factory" that builds the model: each step, when it last ran, whether it succeeded and how fast it was. It also lists model versions (the one marked **@champion** is live) and retraining runs. **Retrain now…** asks for the admin token.
 * **Monitoring** - live charts: number of complaints, response speed, mix of categories, share of urgent complaints and **data drift** (whether today's complaints look different from what the model learned). When drift persists, the system retrains itself automatically.
-* **Help** - a short version of this manual.
+* **Help** - this same manual, inside the application.
 
 ## 8. Privacy
 
