@@ -1,12 +1,12 @@
 {
   "model_name": "complaint-router",
-  "candidate_version": "1",
-  "mlflow_run_id": "3ea6eee4e6b24690997f44314358594c",
+  "candidate_version": "2",
+  "mlflow_run_id": "61f1c9b7eff5429ca03f77e101ffc57e",
   "promoted": true,
-  "previous_champion": null,
-  "previous_champion_macro_f1": null,
-  "candidate_macro_f1": 0.7872,
+  "previous_champion": "1",
+  "previous_champion_macro_f1": 0.7872,
+  "candidate_macro_f1": 0.8008,
   "reasons": [
-    "passed acceptance gate"
+    "passed acceptance gate (champion macro-F1 0.7872)"
   ]
 }

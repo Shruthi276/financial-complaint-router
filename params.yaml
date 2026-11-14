@@ -10,9 +10,11 @@ ingest:
   # "sample":    use the small sample committed to the repo (offline / CI).
   # "local":     use parquet/csv file(s) you already have at `local_path`.
   source: hf_mirror
-  hf_base_url: https://huggingface.co/datasets/davidheineman/consumer-finance-complaints-large/resolve/main/data
+  hf_base_url: 
+    https://huggingface.co/datasets/davidheineman/consumer-finance-complaints-large/resolve/main/data
   hf_shard_template: train-{shard:05d}-of-00011.parquet
-  shards: [10]                 # one shard ~ 114 MB, ~650k rows, ~165k with narratives
+  shards:                      # one shard ~ 114 MB, ~650k rows, ~165k with narratives
+  - 10
   local_path: data/external/complaints.parquet
   sample_path: data/sample/sample_complaints.csv
   download_cache: .cache/downloads   # outside DVC outs so re-runs do not re-download
@@ -38,7 +40,7 @@ split:
   val_size: 0.15
 
 train:
-  model_type: logreg           # logreg | sgd | cnb
+  model_type: sgd              # logreg | sgd | cnb
   max_features: 50000
   ngram_max: 2
   min_df: 3

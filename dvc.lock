@@ -184,7 +184,7 @@ stages:
         mlflow:
           experiment_name: financial-complaint-router
         train:
-          model_type: logreg
+          model_type: sgd
           max_features: 50000
           ngram_max: 2
           min_df: 3
@@ -198,12 +198,12 @@ stages:
     outs:
     - path: models/router.joblib
       hash: md5
-      md5: 98a1f6ec827843bd525da8097769f640
-      size: 24362197
+      md5: 04c732edcad3510dc38a481032504ed8
+      size: 24362417
     - path: reports/train_run.json
       hash: md5
-      md5: 4f13188ddd82eaa5000399d89b1e6239
-      size: 262
+      md5: 039486d2f432b529ce81ee578baa2d15
+      size: 257
   evaluate:
     cmd: python -m complaint_router.pipeline.evaluate
     deps:
@@ -213,12 +213,12 @@ stages:
       size: 4230323
     - path: models/router.joblib
       hash: md5
-      md5: 98a1f6ec827843bd525da8097769f640
-      size: 24362197
+      md5: 04c732edcad3510dc38a481032504ed8
+      size: 24362417
     - path: reports/train_run.json
       hash: md5
-      md5: 4f13188ddd82eaa5000399d89b1e6239
-      size: 262
+      md5: 039486d2f432b529ce81ee578baa2d15
+      size: 257
     - path: src/complaint_router/monitoring/drift.py
       hash: md5
       md5: 3d8022fd14756b410d341a68bda8391d
@@ -236,35 +236,35 @@ stages:
     outs:
     - path: reports/confusion_matrix.csv
       hash: md5
-      md5: 35690986a00a1629ffb6391cf2fc74a1
-      size: 205621
+      md5: 6927511ecfdc655da298f5c581f9b692
+      size: 205998
     - path: reports/confusion_matrix.png
       hash: md5
-      md5: bc5cda3001a15e0f6fc5c9b3340c1386
-      size: 122224
+      md5: b027fae336fd3914962646ad2fb45069
+      size: 120703
     - path: reports/metrics.json
       hash: md5
-      md5: d7beacefd91b0805f375041f3b421668
-      size: 515
+      md5: 160f0377683f155f76e80bfdb91b3902
+      size: 516
     - path: reports/per_class_metrics.json
       hash: md5
-      md5: 9f02de42638cc51fe58f42b4f901e06d
-      size: 1072
+      md5: 47372697cf626e0dbdccc584a8b110c1
+      size: 1068
     - path: reports/reference_stats.json
       hash: md5
-      md5: a8d4ea65ce7276f9a8db578f4b4a81b3
-      size: 894
+      md5: 8269a3c98e3570b952fa5a9101638865
+      size: 892
   register:
     cmd: python -m complaint_router.pipeline.register
     deps:
     - path: reports/metrics.json
       hash: md5
-      md5: d7beacefd91b0805f375041f3b421668
-      size: 515
+      md5: 160f0377683f155f76e80bfdb91b3902
+      size: 516
     - path: reports/train_run.json
       hash: md5
-      md5: 4f13188ddd82eaa5000399d89b1e6239
-      size: 262
+      md5: 039486d2f432b529ce81ee578baa2d15
+      size: 257
     - path: src/complaint_router/pipeline/register.py
       hash: md5
       md5: decc8e655fc4e1dc0559671d490c816b
@@ -281,5 +281,5 @@ stages:
     outs:
     - path: reports/registration.json
       hash: md5
-      md5: 5ce148a4a9b9a65adddf7e18f0f58252
-      size: 289
+      md5: 40ef07143dd2f5b000219eb4fc2d015c
+      size: 317
