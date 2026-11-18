@@ -262,3 +262,19 @@ All required documents are in [docs/](docs/):
 | Test plan and test cases | [docs/test_plan.md](docs/test_plan.md) |
 | Test report (latest results) | [docs/test_report.md](docs/test_report.md) |
 | User manual (for non-technical users) | [docs/user_manual.md](docs/user_manual.md) |
+
+## AI Disclosure & Code of Conduct
+
+**AI Tools Used:** Claude
+
+**Usage Details:**
+- **Git / DVC / Git LFS:** Used Claude for the boilerplate of the local DVC remote and the Git LFS tracking rules.
+- **MLflow:** Used Claude for the syntax of `mlflow.pyfunc.log_model`, model signatures and registry aliases (`@champion` / `@challenger`).
+- **Ray (Lecture 8):** Used Claude to translate my pandas cleaning function into a Ray Data `map_batches` call.
+- **Docker:** Used Claude for the first draft of the Dockerfiles and `docker-compose.yml`, which I then reviewed.
+- **Prometheus / Alertmanager:** Used Claude for the metric and alert rule syntax.
+- **FastAPI / REST:** Used Claude for the boilerplate of the backend endpoints.
+- **Debugging:** Used Claude to explain error logs and find root causes and fixes: the Python 3.14 incompatibility, and the `pathspec` and SQLAlchemy version conflicts (fixed with lock files). Later also a Docker image and the git repository that were corrupted when the VM crashed, the frontend healthcheck, and adding memory limits to the containers after the VM kept freezing.
+- **Web UI:** Used Claude to redesign the frontend (layout, colours, logo, result tiles, input checks, help page) and the drawing of the pipeline graph.
+
+**Impact on Final Submission:** Claude was used as a learning assistant, boilerplate generator, debugging tool and drafting aid. I reviewed, tested and understood all AI-assisted code and text before including it. Model training, metric evaluation, DVC pushes and all tests were run on my own VM, and I checked the results myself.
