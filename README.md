@@ -74,7 +74,7 @@ services/retrainer/         Runs the DVC pipeline when an alert or admin asks
 monitoring/                 Prometheus, Alertmanager and Grafana configuration
 docker/ml.Dockerfile        Image for MLflow, model server and retrainer
 tests/                      unit, integration and end-to-end tests
-scripts/                    setup, CI, smoke test, drift demo, rollback, report/PDF builders
+scripts/                    setup, CI, smoke test, drift demo, rollback
 docs/                       architecture, HLD, LLD, test plan/report, user manual
 
 dvc.yaml                    the pipeline (stages, inputs, outputs)
@@ -248,11 +248,6 @@ A **git pre-push hook** runs the quick CI (lint, unit tests, DVC status) before 
 |---|---|
 | `permission denied ... docker.sock` | run `newgrp docker`, or log out and back in |
 | `ADMIN_TOKEN ... run "make env" first` | run `make env` |
-| UI says *Model offline* | no model trained yet: run `make train`, then check `docker compose logs model-server` |
-| VM freezes or VS Code closes during training | not enough RAM: give the VM more memory, close other programs, or set `preprocess.num_cpus: 1` in `params.yaml` |
-| `no space left on device` | `docker system prune` removes old containers and images |
-| A service keeps restarting after a VM crash | its image may be corrupted: `docker compose build --no-cache <service>` then `make up` |
-| Dataset download fails | set `ingest.source: sample` in `params.yaml` |
 | Retrainer can't write files | `HOST_UID` / `HOST_GID` in `.env` must match `id -u` / `id -g` |
 
 ## 13. Documentation
