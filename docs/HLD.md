@@ -13,7 +13,7 @@ Banks receive large volumes of free-text complaints that are triaged by hand: sl
 | Routing macro-F1 (9 classes) | ≥ 0.70 | **0.80** (accuracy 0.82; 0.90 when confident) |
 | Urgent-complaint recall | ≥ 0.65 | **0.74** |
 | Share of complaints flagged urgent | ≤ 35 % | **31.2 %** (true urgent rate 17.9 %) |
-| Single-request latency (model) | < 1 s p95 | **~80-110 ms** |
+| Single-request latency | < 1 s p95 | **about 0.2 s** end to end (28 ms of model time) |
 | Preprocessing throughput (Ray, 2 CPUs) | - | **~10,000 rows/s** (650k rows in 64 s) |
 
 ### High-level diagram
