@@ -270,7 +270,7 @@ All required documents are in [docs/](docs/):
 **Usage Details:**
 - **Git / DVC / Git LFS:** Used Claude for the boilerplate of the local DVC remote and the Git LFS tracking rules.
 - **MLflow:** Used Claude for the syntax of `mlflow.pyfunc.log_model`, model signatures and registry aliases (`@champion` / `@challenger`).
-- **Ray (Lecture 8):** Used Claude to translate my pandas cleaning function into a Ray Data `map_batches` call.
+- **Ray :** Used Claude to translate my pandas cleaning function into a Ray Data `map_batches` call.
 - **Docker:** Used Claude for the first draft of the Dockerfiles and `docker-compose.yml`, which I then reviewed.
 - **Prometheus / Alertmanager:** Used Claude for the metric and alert rule syntax.
 - **FastAPI / REST:** Used Claude for the boilerplate of the backend endpoints.
