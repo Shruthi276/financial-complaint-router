@@ -1,6 +1,6 @@
 # Low-Level Design - Financial Complaint Router
 
-Interactive OpenAPI docs: `http://<host>:8000/docs` (generated from the same pydantic models as below).
+Interactive OpenAPI docs: `http://<host>:8000/docs` 
 
 ## 1. Modules
 
